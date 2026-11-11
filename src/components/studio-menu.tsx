@@ -78,7 +78,7 @@ export function StudioMenu({
 
   return (
     <div ref={menuRef} className="relative inline-block text-left select-none">
-      {/* Studio Trigger Button - steady non-blinking dot */}
+      {/* Studio Trigger Button - clean without dot */}
       <button
         type="button"
         onClick={toggleMenu}
@@ -87,7 +87,6 @@ export function StudioMenu({
         aria-label="Studio menu"
         className="flex items-center gap-1.5 rounded-full border border-white/15 bg-black/50 px-3.5 py-1.5 text-xs font-medium text-white/90 backdrop-blur-md shadow-lg transition-all hover:border-amber-400/40 hover:bg-white/10 hover:text-white"
       >
-        <span className="size-1.5 rounded-full bg-amber-400/80" />
         <span>Studio</span>
         <ChevronDown
           className={`size-3.5 text-white/60 transition-transform duration-200 ${
@@ -222,7 +221,7 @@ export function StudioMenu({
 
           <div className="my-1 border-t border-white/10" />
 
-          {/* Item: Focus Timer */}
+          {/* Item: Focus Room */}
           <button
             type="button"
             onClick={() => {
@@ -233,12 +232,18 @@ export function StudioMenu({
           >
             <div className="flex items-center gap-2.5">
               <Timer className="size-4 text-amber-400" />
-              <span>Focus Timer</span>
+              <span>Focus Room</span>
             </div>
-            {timer.isRunning && (
+            {timer.isRunning ? (
               <span className="font-mono text-[10px] text-amber-300">
                 {Math.floor(timer.seconds / 60)}:
                 {String(timer.seconds % 60).padStart(2, "0")}
+              </span>
+            ) : (
+              <span className="font-mono text-[10px] text-white/40">
+                {timer.completedSessions > 0
+                  ? `${timer.completedSessions} session${timer.completedSessions > 1 ? "s" : ""}`
+                  : "Timer"}
               </span>
             )}
           </button>
