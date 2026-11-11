@@ -78,7 +78,7 @@ export function StudioMenu({
 
   return (
     <div ref={menuRef} className="relative inline-block text-left select-none">
-      {/* Studio Trigger Button */}
+      {/* Studio Trigger Button - steady non-blinking dot */}
       <button
         type="button"
         onClick={toggleMenu}
@@ -87,7 +87,7 @@ export function StudioMenu({
         aria-label="Studio menu"
         className="flex items-center gap-1.5 rounded-full border border-white/15 bg-black/50 px-3.5 py-1.5 text-xs font-medium text-white/90 backdrop-blur-md shadow-lg transition-all hover:border-amber-400/40 hover:bg-white/10 hover:text-white"
       >
-        <span className="size-1.5 rounded-full bg-amber-400/90 animate-soft-pulse" />
+        <span className="size-1.5 rounded-full bg-amber-400/80" />
         <span>Studio</span>
         <ChevronDown
           className={`size-3.5 text-white/60 transition-transform duration-200 ${
@@ -193,16 +193,27 @@ export function StudioMenu({
             )}
           </div>
 
-          {/* Section: Focus Mode Toggle */}
+          {/* Section: Focus Mode Toggle with blinking focus indicator */}
           <button
             type="button"
             onClick={() => {
               setIsOpen(false);
               onToggleFocusMode();
             }}
-            className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+            className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs transition-colors ${
+              isFocusMode
+                ? "bg-amber-400/15 text-amber-300 font-medium"
+                : "text-white/80 hover:bg-white/10 hover:text-white"
+            }`}
           >
             <div className="flex items-center gap-2.5">
+              <span
+                className={`size-2 rounded-full transition-all ${
+                  isFocusMode
+                    ? "bg-amber-400 animate-soft-pulse shadow-[0_0_8px_rgba(251,191,36,0.8)]"
+                    : "bg-white/30"
+                }`}
+              />
               <Sparkles className="size-4 text-amber-400" />
               <span>{isFocusMode ? "Exit Focus Mode" : "Focus Mode"}</span>
             </div>

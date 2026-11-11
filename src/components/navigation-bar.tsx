@@ -49,15 +49,21 @@ export function NavigationBar({
           >
             <span
               className={`size-1.5 rounded-full ${
-                timer.isRunning ? "bg-amber-400 animate-ping" : "bg-amber-400/80 animate-soft-pulse"
+                isFocusMode
+                  ? "bg-amber-400 animate-soft-pulse shadow-[0_0_8px_rgba(251,191,36,0.9)]"
+                  : timer.isRunning
+                    ? "bg-amber-400 animate-ping"
+                    : "bg-amber-400/80"
               }`}
             />
             <span>
-              {timer.isRunning
-                ? `focus: ${Math.floor(timer.seconds / 60)}:${String(timer.seconds % 60).padStart(2, "0")}`
-                : timer.completedSessions > 0
-                  ? `${timer.completedSessions} focus session${timer.completedSessions > 1 ? "s" : ""}`
-                  : "focus room"}
+              {isFocusMode
+                ? "focus mode active"
+                : timer.isRunning
+                  ? `focus: ${Math.floor(timer.seconds / 60)}:${String(timer.seconds % 60).padStart(2, "0")}`
+                  : timer.completedSessions > 0
+                    ? `${timer.completedSessions} focus session${timer.completedSessions > 1 ? "s" : ""}`
+                    : "focus room"}
             </span>
           </button>
         </div>

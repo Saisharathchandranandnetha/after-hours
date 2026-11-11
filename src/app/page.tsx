@@ -98,13 +98,14 @@ export default function Home() {
           <div className="relative z-20 flex h-full flex-col justify-between px-5 py-4 sm:px-8 sm:py-6">
             {/* Top Navigation Row */}
             {isFocusMode ? (
-              <header className="flex items-center justify-between select-none">
+              <header className="relative z-40 flex items-center justify-between select-none">
                 <LocalClock />
                 <button
                   onClick={toggleFocusMode}
                   aria-label="Exit Focus Mode"
-                  className="flex items-center gap-2 rounded-full border border-amber-400/40 bg-zinc-950/80 px-4 py-1.5 text-xs font-mono text-amber-300 shadow-xl backdrop-blur-md transition-all hover:bg-amber-400/20 hover:border-amber-400"
+                  className="flex items-center gap-2.5 rounded-full border border-amber-400/40 bg-zinc-950/80 px-4 py-1.5 text-xs font-mono text-amber-300 shadow-xl backdrop-blur-md transition-all hover:bg-amber-400/20 hover:border-amber-400"
                 >
+                  <span className="size-2 rounded-full bg-amber-400 animate-soft-pulse shadow-[0_0_8px_rgba(251,191,36,0.9)]" />
                   <Sparkles className="size-3.5 text-amber-400" />
                   <span>Exit Focus Mode</span>
                   <span className="text-[10px] text-white/40">[F]</span>
