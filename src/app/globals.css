@@ -1,0 +1,181 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-heading: var(--font-instrument-serif), ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+}
+
+:root {
+  --background: oklch(0.12 0.01 40);
+  --foreground: oklch(0.98 0.01 70);
+  --card: oklch(0.16 0.015 40 / 80%);
+  --card-foreground: oklch(0.98 0.01 70);
+  --popover: oklch(0.15 0.015 40 / 92%);
+  --popover-foreground: oklch(0.98 0.01 70);
+  --primary: oklch(0.85 0.15 75);
+  --primary-foreground: oklch(0.15 0.02 50);
+  --secondary: oklch(0.24 0.015 40);
+  --secondary-foreground: oklch(0.95 0.01 70);
+  --muted: oklch(0.22 0.01 40);
+  --muted-foreground: oklch(0.7 0.02 60);
+  --accent: oklch(0.28 0.02 45);
+  --accent-foreground: oklch(0.98 0.01 70);
+  --destructive: oklch(0.6 0.22 25);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.8 0.14 75 / 50%);
+  --radius: 0.75rem;
+}
+
+.dark {
+  --background: oklch(0.12 0.01 40);
+  --foreground: oklch(0.98 0.01 70);
+  --card: oklch(0.16 0.015 40 / 80%);
+  --card-foreground: oklch(0.98 0.01 70);
+  --popover: oklch(0.15 0.015 40 / 95%);
+  --popover-foreground: oklch(0.98 0.01 70);
+  --primary: oklch(0.85 0.15 75);
+  --primary-foreground: oklch(0.15 0.02 50);
+  --secondary: oklch(0.24 0.015 40);
+  --secondary-foreground: oklch(0.95 0.01 70);
+  --muted: oklch(0.22 0.01 40);
+  --muted-foreground: oklch(0.7 0.02 60);
+  --accent: oklch(0.28 0.02 45);
+  --accent-foreground: oklch(0.98 0.01 70);
+  --destructive: oklch(0.6 0.22 25);
+  --border: oklch(1 0 0 / 12%);
+  --input: oklch(1 0 0 / 16%);
+  --ring: oklch(0.8 0.14 75 / 50%);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+  }
+}
+
+/* Full-viewport canvas without page scrollbars on desktop */
+html,
+body {
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+  overscroll-behavior: none;
+}
+
+@layer utilities {
+  /* Cassette reel rotation */
+  @keyframes reel-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .animate-reel {
+    animation: reel-spin 2.6s linear infinite;
+  }
+
+  /* Marquee scrolling for long track titles */
+  @keyframes marquee {
+    0% {
+      transform: translateX(0);
+    }
+    100% {
+      transform: translateX(-50%);
+    }
+  }
+
+  .animate-marquee {
+    display: inline-flex;
+    animation: marquee 16s linear infinite;
+  }
+
+  /* Smooth pulse for live indicator or timer */
+  @keyframes soft-pulse {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
+  }
+
+  .animate-soft-pulse {
+    animation: soft-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* Blinking colon for clock */
+  @keyframes colon-blink {
+    0%, 49% {
+      opacity: 1;
+    }
+    50%, 100% {
+      opacity: 0;
+    }
+  }
+
+  .animate-blink {
+    animation: colon-blink 1s steps(1, start) infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-reel,
+    .animate-marquee,
+    .animate-soft-pulse,
+    .animate-blink {
+      animation: none !important;
+    }
+  }
+}
+
+/* Custom minimal scrollbar for modals and playlist drawers */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.32);
+}
