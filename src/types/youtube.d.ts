@@ -48,6 +48,7 @@ declare namespace YT {
     pauseVideo(): void;
     nextVideo(): void;
     previousVideo(): void;
+    playVideoAt(index: number): void;
     seekTo(seconds: number, allowSeekAhead: boolean): void;
     setVolume(volume: number): void;
     getVolume(): number;
@@ -64,7 +65,12 @@ declare namespace YT {
     getPlayerState(): PlayerState;
     destroy(): void;
     getIframe(): HTMLIFrameElement;
-    loadVideoById(videoId: string): void;
+    cueVideoById(
+      videoId: string | { videoId: string; startSeconds?: number; endSeconds?: number }
+    ): void;
+    loadVideoById(
+      videoId: string | { videoId: string; startSeconds?: number; endSeconds?: number }
+    ): void;
     cuePlaylist(options: {
       listType: string;
       list: string;

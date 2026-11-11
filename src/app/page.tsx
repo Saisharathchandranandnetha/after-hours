@@ -7,11 +7,12 @@ import { CassetteDeck } from "@/components/cassette-deck";
 import { NavigationBar } from "@/components/navigation-bar";
 import { LocalClock } from "@/components/local-clock";
 import { useSettings } from "@/lib/settings";
-import { X } from "lucide-react";
+import { X, Sparkles } from "lucide-react";
 
 export default function Home() {
   const { personalization, clock, updateClock, hydrate } = useSettings();
   const [isFullScreen, setIsFullScreen] = useState(false);
+  const [isFocusMode, setIsFocusMode] = useState(false);
 
   useEffect(() => {
     hydrate();
@@ -29,6 +30,10 @@ export default function Home() {
     }
   }, []);
 
+  const toggleFocusMode = useCallback(() => {
+    setIsFocusMode((prev) => !prev);
+  }, []);
+
   // Listen for fullscreenchange events (e.g. user pressed Escape)
   useEffect(() => {
     const handleFsChange = () => {
@@ -38,10 +43,37 @@ export default function Home() {
     return () => document.removeEventListener("fullscreenchange", handleFsChange);
   }, []);
 
+  // Global KeyF shortcut for Focus Mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeEl = document.activeElement;
+      if (
+        activeEl &&
+        (activeEl.tagName === "INPUT" ||
+          activeEl.tagName === "TEXTAREA" ||
+          activeEl.tagName === "SELECT" ||
+          (activeEl as HTMLElement).isContentEditable)
+      ) {
+        return;
+      }
+      if (e.code === "KeyF") {
+        e.preventDefault();
+        setIsFocusMode((prev) => !prev);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-zinc-950 font-sans">
       {/* Cinematic Background Scenery */}
       <CoverScene />
+
+      {/* Focus Mode Dimming Backdrop */}
+      {isFocusMode && (
+        <div className="absolute inset-0 z-10 bg-black/65 backdrop-blur-xs transition-opacity duration-500 pointer-events-none" />
+      )}
 
       <PlayerProvider>
         {/* Full-Screen Digital Clock Overlay if activated */}
@@ -63,29 +95,48 @@ export default function Home() {
             </p>
           </div>
         ) : (
-          <div className="relative z-10 flex h-full flex-col justify-between px-5 py-4 sm:px-8 sm:py-6">
+          <div className="relative z-20 flex h-full flex-col justify-between px-5 py-4 sm:px-8 sm:py-6">
             {/* Top Navigation Row */}
-            <NavigationBar
-              isFullScreen={isFullScreen}
-              onToggleFullScreen={toggleFullScreen}
-            />
+            {isFocusMode ? (
+              <header className="flex items-center justify-between select-none">
+                <LocalClock />
+                <button
+                  onClick={toggleFocusMode}
+                  aria-label="Exit Focus Mode"
+                  className="flex items-center gap-2 rounded-full border border-amber-400/40 bg-zinc-950/80 px-4 py-1.5 text-xs font-mono text-amber-300 shadow-xl backdrop-blur-md transition-all hover:bg-amber-400/20 hover:border-amber-400"
+                >
+                  <Sparkles className="size-3.5 text-amber-400" />
+                  <span>Exit Focus Mode</span>
+                  <span className="text-[10px] text-white/40">[F]</span>
+                </button>
+              </header>
+            ) : (
+              <NavigationBar
+                isFullScreen={isFullScreen}
+                onToggleFullScreen={toggleFullScreen}
+                isFocusMode={isFocusMode}
+                onToggleFocusMode={toggleFocusMode}
+              />
+            )}
 
-            {/* Editorial Center Title */}
-            <div className="flex flex-col items-center justify-center text-center my-auto py-4 select-none">
-              <h1 className="font-heading text-5xl sm:text-7xl md:text-8xl leading-[0.95] text-white/95 drop-shadow-[0_2px_28px_rgba(0,0,0,0.9)] tracking-tight">
-                {personalization.headingText || "late night coding"}
-              </h1>
-              {personalization.subtitleText && (
-                <p className="mt-4 font-mono text-xs sm:text-sm tracking-[0.25em] text-white/50 uppercase drop-shadow-[0_1px_12px_rgba(0,0,0,0.8)]">
-                  {personalization.subtitleText}
-                </p>
-              )}
-            </div>
+            {/* Editorial Center Title (Hidden during Focus Mode for zero distractions) */}
+            {!isFocusMode && (
+              <div className="flex flex-col items-center justify-center text-center my-auto py-4 select-none">
+                <h1 className="font-heading text-5xl sm:text-7xl md:text-8xl leading-[0.95] text-white/95 drop-shadow-[0_2px_28px_rgba(0,0,0,0.9)] tracking-tight">
+                  {personalization.headingText || "late night coding"}
+                </h1>
+                {personalization.subtitleText && (
+                  <p className="mt-4 font-mono text-xs sm:text-sm tracking-[0.25em] text-white/50 uppercase drop-shadow-[0_1px_12px_rgba(0,0,0,0.8)]">
+                    {personalization.subtitleText}
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Bottom Centered Cassette Deck */}
-            <footer className="flex justify-center pb-2 select-none">
+            <footer className="flex justify-center pb-2 select-none mt-auto">
               <CassetteDeck
-                onToggleFocusMode={toggleFullScreen}
+                onToggleFocusMode={toggleFocusMode}
               />
             </footer>
           </div>

@@ -1,5 +1,5 @@
 /**
- * Playlist data model and persistence.
+ * Playlist data model, migration, and persistence.
  *
  * Playlists are stored in localStorage. Each playlist has a unique ID,
  * a name, source type (YouTube or local audio), and source data.
@@ -17,6 +17,7 @@ export type LocalAudioFile = {
   /** Object URL or IndexedDB key */
   src: string;
   duration: number;
+  backgroundUrl?: string;
 };
 
 export type Playlist = {
@@ -25,6 +26,7 @@ export type Playlist = {
   source: PlaylistSource;
   coverUrl?: string;
   backgroundUrl?: string;
+  trackBackgrounds?: Record<string, string>; // map of videoId/fileId -> background image URL
   isFavorite: boolean;
   createdAt: number;
   updatedAt: number;
@@ -46,7 +48,7 @@ export function generateId(): string {
  * - https://youtube.com/playlist?list=PLxxxxxxxx
  * - https://www.youtube.com/watch?v=xxx&list=PLxxxxxxxx
  * - https://music.youtube.com/playlist?list=PLxxxxxxxx
- * - Raw playlist ID (PLxxxxxxxx or similar)
+ * - Raw playlist ID (PLxxxxxxxx, RDxxxxxxxx, etc.)
  */
 export function extractYouTubePlaylistId(input: string): string | null {
   const trimmed = input.trim();
@@ -61,9 +63,9 @@ export function extractYouTubePlaylistId(input: string): string | null {
     // Not a URL, check if it looks like a raw ID
   }
 
-  // Check if it looks like a playlist ID (typically starts with PL, OL, UU, etc. or is at least 18 characters)
+  // Check if it looks like a playlist ID (typically starts with PL, OL, UU, RD, etc. or is at least 10 chars)
   if (
-    /^(PL|UU|LL|FL|RD|OL)[A-Za-z0-9_-]{10,}$/.test(trimmed) ||
+    /^(PL|UU|LL|FL|RD|OL)[A-Za-z0-9_-]{8,}$/.test(trimmed) ||
     /^[A-Za-z0-9_-]{18,}$/.test(trimmed)
   ) {
     return trimmed;
@@ -95,7 +97,7 @@ export function extractYouTubeVideoId(input: string): string | null {
     }
     // youtu.be/ID
     if (url.hostname === "youtu.be") {
-      const id = url.pathname.slice(1);
+      const id = url.pathname.slice(1).split("?")[0];
       if (id) return id;
     }
   } catch {
@@ -113,6 +115,18 @@ export function extractYouTubeVideoId(input: string): string | null {
 /** Default playlists that come pre-configured */
 export const DEFAULT_PLAYLISTS: Playlist[] = [
   {
+    id: "default-feel",
+    name: "feel",
+    source: {
+      type: "youtube",
+      playlistId: "PLJQOYXoZjkTU",
+      videoId: "ckwRhLE9_LY",
+    },
+    isFavorite: true,
+    createdAt: 1700000000000,
+    updatedAt: 1700000000000,
+  },
+  {
     id: "skins-slowed-radio",
     name: "Skins (Slowed + Reverb) — Radio",
     source: {
@@ -121,8 +135,8 @@ export const DEFAULT_PLAYLISTS: Playlist[] = [
       videoId: "ET6Hn_iADIs",
     },
     isFavorite: true,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
+    createdAt: 1700000000001,
+    updatedAt: 1700000000001,
   },
   {
     id: "default-late-night",
@@ -132,8 +146,8 @@ export const DEFAULT_PLAYLISTS: Playlist[] = [
       playlistId: "PLjEaoINr3zgEq71FullHMiY0-b4STCaot",
     },
     isFavorite: true,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
+    createdAt: 1700000000002,
+    updatedAt: 1700000000002,
   },
   {
     id: "default-deep-focus",
@@ -143,8 +157,8 @@ export const DEFAULT_PLAYLISTS: Playlist[] = [
       playlistId: "PLjEaoINr3zgHqbmAY-f5OoMYYeARthC_G",
     },
     isFavorite: false,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
+    createdAt: 1700000000003,
+    updatedAt: 1700000000003,
   },
   {
     id: "default-research",
@@ -154,8 +168,8 @@ export const DEFAULT_PLAYLISTS: Playlist[] = [
       playlistId: "PLjEaoINr3zgGBmmLWvR4PE5cY8T2pQdPn",
     },
     isFavorite: false,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
+    createdAt: 1700000000004,
+    updatedAt: 1700000000004,
   },
   {
     id: "default-lofi",
@@ -165,8 +179,8 @@ export const DEFAULT_PLAYLISTS: Playlist[] = [
       playlistId: "PLofht4PTcKYnaH8w5olJCI-wUVxuoMHqM",
     },
     isFavorite: false,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
+    createdAt: 1700000000005,
+    updatedAt: 1700000000005,
   },
   {
     id: "default-ambient",
@@ -176,19 +190,47 @@ export const DEFAULT_PLAYLISTS: Playlist[] = [
       playlistId: "PLMXbAPr21di4ZjeijkAFbPPfOY7BkSJTY",
     },
     isFavorite: false,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
+    createdAt: 1700000000006,
+    updatedAt: 1700000000006,
   },
 ];
 
-/** Load playlists from localStorage */
+/**
+ * Load playlists from localStorage with safe migration for returning users.
+ * Automatically adds any missing default preset (such as "feel") without
+ * overwriting existing user playlists, order, or preferences.
+ */
 export function loadPlaylists(): Playlist[] {
   if (typeof window === "undefined") return DEFAULT_PLAYLISTS;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_PLAYLISTS;
     const parsed = JSON.parse(raw) as Playlist[];
-    return parsed.length > 0 ? parsed : DEFAULT_PLAYLISTS;
+    if (!Array.isArray(parsed) || parsed.length === 0) return DEFAULT_PLAYLISTS;
+
+    let migrated = false;
+    const result = [...parsed];
+
+    // Ensure all default presets exist without touching custom order/settings
+    for (const def of DEFAULT_PLAYLISTS) {
+      const exists = result.some(
+        (p) =>
+          p.id === def.id ||
+          (p.source.type === "youtube" &&
+            def.source.type === "youtube" &&
+            p.source.playlistId === def.source.playlistId)
+      );
+      if (!exists) {
+        result.push(def);
+        migrated = true;
+      }
+    }
+
+    if (migrated) {
+      savePlaylists(result);
+    }
+
+    return result;
   } catch {
     return DEFAULT_PLAYLISTS;
   }

@@ -61,8 +61,9 @@ describe("Playlist Store", () => {
 
   it("loads default presets on initial startup", () => {
     const playlists = usePlaylistStore.getState().playlists;
-    expect(playlists.length).toBeGreaterThanOrEqual(6);
-    expect(playlists[0].name).toBe("Skins (Slowed + Reverb) — Radio");
+    expect(playlists.length).toBeGreaterThanOrEqual(7);
+    expect(playlists.some((p) => p.name === "feel")).toBe(true);
+    expect(playlists.some((p) => p.name === "Skins (Slowed + Reverb) — Radio")).toBe(true);
     expect(playlists.some((p) => p.name === "Late Night Coding")).toBe(true);
   });
 

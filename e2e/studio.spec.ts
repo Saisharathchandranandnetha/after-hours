@@ -26,8 +26,156 @@ test.describe("After Hours Studio E2E", () => {
     const playButton = page.getByRole("button", { name: "Play", exact: true });
     await expect(playButton).toBeVisible();
 
+    // Check Studio menu button
+    const studioBtn = page.getByRole("button", { name: /studio menu/i });
+    await expect(studioBtn).toBeVisible();
+
     // Capture visual screenshot
     await page.screenshot({ path: "e2e-desktop-studio.png", fullPage: true });
+  });
+
+  test("interacts with Studio dropdown menu and opens playlists including feel", async ({ page }) => {
+    await page.goto("/");
+
+    // Click Studio menu button
+    const studioBtn = page.getByRole("button", { name: /studio menu/i });
+    await studioBtn.click();
+
+    // Studio menu items should be visible
+    const playlistsBtn = page.getByRole("button", { name: "Playlists", exact: true });
+    await expect(playlistsBtn).toBeVisible();
+
+    // Open playlists flyout
+    await playlistsBtn.click();
+
+    // Verify 'feel' playlist is present in quick switch
+    const feelItem = page.locator("button:has-text('feel')");
+    await expect(feelItem.first()).toBeVisible();
+
+    // Click Manage Playlists
+    const manageBtn = page.getByRole("button", { name: /manage playlists/i });
+    await manageBtn.click();
+
+    const dialog = page.getByRole("dialog", { name: /playlist manager/i });
+    await expect(dialog).toBeVisible();
+
+    // Expect presets like Deep Focus, Research Sessions
+    await expect(dialog.locator("text=Deep Focus")).toBeVisible();
+    await expect(dialog.locator("text=Research Sessions")).toBeVisible();
+
+    // Close dialog
+    const closeBtn = page.getByRole("button", { name: /close playlists/i });
+    await closeBtn.click();
+    await expect(dialog).not.toBeVisible();
+  });
+
+  test("opens Now Playing & Queue drawer from cassette deck", async ({ page }) => {
+    await page.goto("/");
+
+    // Click Queue button in cassette deck
+    const queueBtn = page.getByRole("button", { name: /open queue/i });
+    await expect(queueBtn).toBeVisible();
+    await queueBtn.click();
+
+    // Drawer should open
+    const drawer = page.getByRole("dialog", { name: /now playing and queue/i });
+    await expect(drawer).toBeVisible();
+    await expect(drawer).toContainText(/now playing & queue/i);
+
+    // Close queue drawer
+    const closeQueueBtn = page.getByRole("button", { name: /close queue panel/i });
+    await closeQueueBtn.click();
+    await expect(drawer).not.toBeVisible();
+  });
+
+  test("opens More options in cassette deck with volume, shuffle, repeat, and video toggle", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    // Click More button in cassette deck
+    const moreBtn = page.getByRole("button", { name: /more playback options/i });
+    await expect(moreBtn).toBeVisible();
+    await moreBtn.click();
+
+    // Check volume slider
+    const volumeSlider = page.getByRole("slider", { name: /volume/i });
+    await expect(volumeSlider).toBeVisible();
+
+    // Check shuffle toggle
+    const shuffleBtn = page.getByRole("button", { name: /shuffle/i });
+    await expect(shuffleBtn).toBeVisible();
+
+    // Check repeat toggle
+    const repeatBtn = page.getByRole("button", { name: /repeat/i });
+    await expect(repeatBtn).toBeVisible();
+
+    // Check video player window toggle
+    const videoBtn = page.getByRole("button", { name: /video player window/i });
+    await expect(videoBtn).toBeVisible();
+  });
+
+  test("toggles Focus Mode with dimmed scene and exit button", async ({ page }) => {
+    await page.goto("/");
+
+    // Open Studio menu and toggle Focus Mode
+    const studioBtn = page.getByRole("button", { name: /studio menu/i });
+    await studioBtn.click();
+
+    const focusModeBtn = page.getByRole("button", { name: /focus mode/i });
+    await focusModeBtn.click();
+
+    // Exit Focus Mode button should now be visible
+    const exitFocusBtn = page.getByRole("button", { name: /exit focus mode/i });
+    await expect(exitFocusBtn).toBeVisible();
+
+    // Editorial heading should be hidden during Focus Mode
+    const heading = page.locator("h1");
+    await expect(heading).not.toBeVisible();
+
+    // Click Exit Focus Mode button
+    await exitFocusBtn.click();
+    await expect(heading).toBeVisible();
+  });
+
+  test("opens focus timer and verifies timer persistence", async ({ page }) => {
+    await page.goto("/");
+
+    // Click center focus room button
+    const focusRoomBtn = page.getByTitle(/focus studio status/i);
+    await focusRoomBtn.click();
+
+    const dialog = page.getByRole("dialog", { name: /focus timer/i });
+    await expect(dialog).toBeVisible();
+
+    // Check 25:00 default
+    await expect(dialog).toContainText("25:00");
+
+    // Click Start
+    const startBtn = page.getByRole("button", { name: /start timer/i });
+    await startBtn.click();
+
+    // Expect Pause button to appear
+    const pauseBtn = page.getByRole("button", { name: /pause timer/i });
+    await expect(pauseBtn).toBeVisible();
+
+    // Close modal
+    const closeBtn = page.getByRole("button", { name: /close focus timer/i });
+    await closeBtn.click();
+    await expect(dialog).not.toBeVisible();
+
+    // Reopen modal: verify timer is STILL running and pause button is still active!
+    await focusRoomBtn.click();
+    const reopenedDialog = page.getByRole("dialog", { name: /focus timer/i });
+    await expect(reopenedDialog).toBeVisible();
+    await expect(page.getByRole("button", { name: /pause timer/i })).toBeVisible();
+
+    // Click pause
+    await page.getByRole("button", { name: /pause timer/i }).click();
+    await expect(page.getByRole("button", { name: /start timer/i })).toBeVisible();
+
+    // Close
+    await page.getByRole("button", { name: /close focus timer/i }).click();
   });
 
   test("opens clock customization modal and changes format", async ({ page }) => {
@@ -51,56 +199,14 @@ test.describe("After Hours Studio E2E", () => {
     await expect(modal).not.toBeVisible();
   });
 
-  test("opens playlist library modal and displays playlists", async ({ page }) => {
-    await page.goto("/");
-
-    // Click Playlists button
-    const playlistsBtn = page.getByRole("button", { name: /manage playlists/i });
-    await playlistsBtn.click();
-
-    const dialog = page.getByRole("dialog", { name: /playlist manager/i });
-    await expect(dialog).toBeVisible();
-
-    // Expect presets like Deep Focus, Research Sessions
-    await expect(dialog.locator("text=Deep Focus")).toBeVisible();
-    await expect(dialog.locator("text=Research Sessions")).toBeVisible();
-
-    // Close dialog
-    const closeBtn = page.getByRole("button", { name: /close playlists/i });
-    await closeBtn.click();
-    await expect(dialog).not.toBeVisible();
-  });
-
-  test("opens focus timer modal and can start pomodoro", async ({ page }) => {
-    await page.goto("/");
-
-    // Click Timer button
-    const timerBtn = page.getByRole("button", { name: /focus timer/i });
-    await timerBtn.click();
-
-    const dialog = page.getByRole("dialog", { name: /focus timer/i });
-    await expect(dialog).toBeVisible();
-
-    // Check 25:00 default
-    await expect(dialog).toContainText("25:00");
-
-    // Click Start
-    const startBtn = page.getByRole("button", { name: /start timer/i });
-    await startBtn.click();
-
-    // Expect to switch to Pause
-    const pauseBtn = page.getByRole("button", { name: /pause timer/i });
-    await expect(pauseBtn).toBeVisible();
-
-    // Close
-    const closeBtn = page.getByRole("button", { name: /close focus timer/i });
-    await closeBtn.click();
-  });
-
   test("opens customization modal and lists scenic backgrounds", async ({ page }) => {
     await page.goto("/");
 
-    // Click Customize button
+    // Open Studio menu
+    const studioBtn = page.getByRole("button", { name: /studio menu/i });
+    await studioBtn.click();
+
+    // Click Customize
     const customizeBtn = page.getByRole("button", { name: /customize studio/i });
     await customizeBtn.click();
 
@@ -114,5 +220,6 @@ test.describe("After Hours Studio E2E", () => {
     // Close
     const doneBtn = page.getByRole("button", { name: /done/i });
     await doneBtn.click();
+    await expect(dialog).not.toBeVisible();
   });
 });

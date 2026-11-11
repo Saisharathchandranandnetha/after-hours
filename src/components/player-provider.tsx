@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useMemo } from "react";
+import { Maximize2, Minimize2, Tv } from "lucide-react";
 import { usePlaylistStore } from "@/lib/playlist-store";
 import { useYouTubePlayer } from "@/hooks/use-youtube-player";
 import { useLocalAudioPlayer } from "@/hooks/use-local-audio-player";
@@ -13,6 +14,7 @@ type PlayerContextValue = {
   isEmbedExpanded: boolean;
   setEmbedExpanded: (expanded: boolean | ((prev: boolean) => boolean)) => void;
   activePlaylistName: string;
+  activePlaylist: Playlist | undefined;
 };
 
 const PlayerContext = createContext<PlayerContextValue | null>(null);
@@ -54,6 +56,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     activePlaylist?.source.type === "youtube" ? activePlaylist.source.videoId : undefined;
 
   const ytPlayer = useYouTubePlayer({
+    playlistId: activePlaylist?.id,
     sourceType: ytSourceType,
     sourceId: ytSourceId,
     initialVideoId,
@@ -62,7 +65,10 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
 
   // Local audio player instance
   const localFiles = activePlaylist?.source.type === "local" ? activePlaylist.source.files : [];
-  const localPlayer = useLocalAudioPlayer({ files: localFiles });
+  const localPlayer = useLocalAudioPlayer({
+    files: localFiles,
+    playlistId: activePlaylist?.id,
+  });
 
   const activePlayer: UnifiedPlayer = isLocal ? localPlayer : ytPlayer;
 
@@ -92,36 +98,55 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         isEmbedExpanded,
         setEmbedExpanded,
         activePlaylistName: activePlaylist?.name || "Late Night Coding",
+        activePlaylist,
       }}
     >
       {children}
 
       {/* 
-        Compliant YouTube Player Container:
-        - When collapsed: positioned non-intrusively in a minimal 200x200 viewport corner or drawer
-        - When expanded: expands into a beautiful picture-in-picture / video panel without obscuring YouTube controls
+        Compliant, Genuinely Visible YouTube Player Container:
+        - Never obscured with opacity-0 or negative z-index.
+        - Compact mode: 240px x 140px docked cleanly at bottom-right with glass border.
+        - Expanded mode: 480px x 270px desktop (or 90vw max 520px mobile).
+        - YouTube controls and branding are preserved and accessible.
       */}
       {!isLocal && (
         <div
-          className={`fixed transition-all duration-300 z-40 ${
+          className={`fixed transition-all duration-300 select-none ${
             isEmbedExpanded
-              ? "bottom-6 right-6 w-80 h-48 sm:w-96 sm:h-56 rounded-xl overflow-hidden shadow-2xl border border-white/20 bg-black/90 backdrop-blur-md"
-              : "bottom-2 right-2 w-[200px] h-[200px] opacity-0 pointer-events-none -z-50"
-          }`}
+              ? "z-50 pointer-events-auto bottom-5 right-5 w-[90vw] max-w-[500px] h-[280px] sm:w-[480px] sm:h-[270px] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] border border-amber-400/30 bg-black/95 backdrop-blur-xl"
+              : "z-20 pointer-events-none bottom-3 right-3 sm:bottom-4 sm:right-4 w-[200px] h-[120px] sm:w-[240px] sm:h-[150px] rounded-xl shadow-xl border border-white/15 bg-black/90 backdrop-blur-md opacity-85 hover:opacity-100"
+          } overflow-hidden group`}
           aria-label="YouTube Video Player"
         >
-          {isEmbedExpanded && (
-            <div className="absolute top-2 right-2 z-50">
+          {/* Header bar with controls */}
+          <div className="absolute top-0 left-0 right-0 h-7 bg-gradient-to-b from-black/80 to-transparent px-2 flex items-center justify-between z-50 pointer-events-auto">
+            <div className="flex items-center gap-1.5 text-[10px] font-mono text-white/70">
+              <Tv className="size-3 text-amber-400" />
+              <span className="truncate max-w-[120px]">
+                {activePlayer.track?.title || "Live Stream"}
+              </span>
+            </div>
+            <div className="flex items-center gap-1">
               <button
-                onClick={() => setEmbedExpanded(false)}
-                className="rounded-full bg-black/70 p-1 text-white/80 hover:bg-black hover:text-white"
-                title="Minimize Video"
+                onClick={() => setEmbedExpanded((prev) => !prev)}
+                className="rounded p-1 text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                title={isEmbedExpanded ? "Contract Player" : "Expand Player"}
+                aria-label={isEmbedExpanded ? "Contract Video Player" : "Expand Video Player"}
               >
-                ✕
+                {isEmbedExpanded ? (
+                  <Minimize2 className="size-3" />
+                ) : (
+                  <Maximize2 className="size-3" />
+                )}
               </button>
             </div>
-          )}
-          <div ref={setHost} className="w-full h-full" />
+          </div>
+
+          {/* YouTube IFrame host */}
+          <div className="w-full h-full pt-6">
+            <div ref={setHost} className="w-full h-full" />
+          </div>
         </div>
       )}
     </PlayerContext.Provider>

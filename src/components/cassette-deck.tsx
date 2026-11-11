@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   Play,
   Pause,
@@ -14,10 +14,14 @@ import {
   Repeat,
   Repeat1,
   Tv,
+  ListMusic,
+  MoreHorizontal,
+  BookmarkCheck,
 } from "lucide-react";
 import { Cassette } from "./cassette";
 import { usePlayerContext } from "./player-provider";
 import { formatDuration } from "@/lib/format";
+import { NowPlayingPanel } from "./now-playing-panel";
 
 type CassetteDeckProps = {
   onOpenTimer?: () => void;
@@ -28,6 +32,7 @@ export function CassetteDeck({ onOpenTimer, onToggleFocusMode }: CassetteDeckPro
   const { player, isEmbedExpanded, setEmbedExpanded, activePlaylistName } = usePlayerContext();
 
   const {
+    state,
     ready,
     playing,
     buffering,
@@ -40,7 +45,9 @@ export function CassetteDeck({ onOpenTimer, onToggleFocusMode }: CassetteDeckPro
     shuffle,
     repeat,
     error,
+    hasCheckpoint,
     toggle,
+    resume,
     next,
     previous,
     seek,
@@ -52,13 +59,39 @@ export function CassetteDeck({ onOpenTimer, onToggleFocusMode }: CassetteDeckPro
 
   // Scrubbing state for seek slider
   const [scrub, setScrub] = useState<number | null>(null);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [queueOpen, setQueueOpen] = useState(false);
+  const moreMenuRef = useRef<HTMLDivElement | null>(null);
+
   const displayed = scrub ?? position;
   const seekable = ready && !live && duration > 0;
 
-  // Global keyboard shortcuts (Space, Arrows, M, F, T)
+  // Close More menu on outside click or escape
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(e.target as Node)) {
+        setMoreMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMoreMenuOpen(false);
+      }
+    };
+
+    if (moreMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [moreMenuOpen]);
+
+  // Global keyboard shortcuts (Space, Arrows, M, F, T, Q)
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Ignore if user is currently interacting with an input or editable field
       const activeEl = document.activeElement;
       if (
         activeEl &&
@@ -99,6 +132,10 @@ export function CassetteDeck({ onOpenTimer, onToggleFocusMode }: CassetteDeckPro
           event.preventDefault();
           onOpenTimer?.();
           break;
+        case "KeyQ":
+          event.preventDefault();
+          setQueueOpen((prev) => !prev);
+          break;
       }
     };
 
@@ -114,169 +151,244 @@ export function CassetteDeck({ onOpenTimer, onToggleFocusMode }: CassetteDeckPro
     : track?.artist ?? "late night coding";
 
   return (
-    <div className="w-full max-w-[28rem] rounded-3xl bg-zinc-950/60 p-4 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.95)] ring-1 ring-white/15 backdrop-blur-xl transition-all">
-      {/* Cassette visualization */}
-      <Cassette
-        title={title}
-        artist={artist}
-        playlistName={activePlaylistName}
-        spinning={playing}
-        progress={duration > 0 ? displayed / duration : 0}
-      />
+    <>
+      <div className="relative z-30 w-full max-w-[28rem] rounded-3xl bg-zinc-950/60 p-4 shadow-[0_24px_64px_-16px_rgba(0,0,0,0.95)] ring-1 ring-white/15 backdrop-blur-xl transition-all">
+        {/* Checkpoint Resume Listening Notice */}
+        {hasCheckpoint && !playing && (
+          <div className="mb-2 flex items-center justify-center gap-1.5 font-mono text-[11px] text-amber-300 bg-amber-400/10 border border-amber-400/20 py-1 px-3 rounded-full animate-pulse select-none">
+            <BookmarkCheck className="size-3 text-amber-400" />
+            <span>Resume listening</span>
+          </div>
+        )}
 
-      {/* Progress timeline bar */}
-      <div className="mt-4 flex items-center gap-3 px-1">
-        <span className="w-10 shrink-0 font-mono text-[11px] text-white/60 tabular-nums">
-          {live ? "live" : formatDuration(displayed)}
-        </span>
+        {/* Cassette visualization */}
+        <Cassette
+          title={title}
+          artist={artist}
+          playlistName={activePlaylistName}
+          spinning={playing}
+          progress={duration > 0 ? displayed / duration : 0}
+        />
 
-        <div className="relative flex-1 flex items-center">
-          <input
-            type="range"
-            aria-label="Seek track"
-            disabled={!seekable}
-            min={0}
-            max={Math.max(duration, 1)}
-            step={0.5}
-            value={displayed}
-            onChange={(e) => setScrub(Number(e.target.value))}
-            onMouseUp={(e) => {
-              seek(Number((e.target as HTMLInputElement).value));
-              setScrub(null);
-            }}
-            onTouchEnd={(e) => {
-              seek(Number((e.target as HTMLInputElement).value));
-              setScrub(null);
-            }}
-            className="w-full h-1.5 rounded-lg appearance-none bg-white/20 accent-amber-300 cursor-pointer disabled:cursor-not-allowed"
-          />
+        {/* Progress timeline bar */}
+        <div className="mt-4 flex items-center gap-3 px-1">
+          <span className="w-10 shrink-0 font-mono text-[11px] text-white/60 tabular-nums">
+            {live ? "live" : formatDuration(displayed)}
+          </span>
+
+          <div className="relative flex-1 flex items-center">
+            <input
+              type="range"
+              aria-label="Seek track"
+              disabled={!seekable}
+              min={0}
+              max={Math.max(duration, 1)}
+              step={0.5}
+              value={displayed}
+              onChange={(e) => setScrub(Number(e.target.value))}
+              onMouseUp={(e) => {
+                seek(Number((e.target as HTMLInputElement).value));
+                setScrub(null);
+              }}
+              onTouchEnd={(e) => {
+                seek(Number((e.target as HTMLInputElement).value));
+                setScrub(null);
+              }}
+              className="w-full h-1.5 rounded-lg appearance-none bg-white/20 accent-amber-300 cursor-pointer disabled:cursor-not-allowed"
+            />
+          </div>
+
+          <span className="w-10 shrink-0 text-right font-mono text-[11px] text-white/60 tabular-nums">
+            {live ? "∞" : formatDuration(duration)}
+          </span>
         </div>
 
-        <span className="w-10 shrink-0 text-right font-mono text-[11px] text-white/60 tabular-nums">
-          {live ? "∞" : formatDuration(duration)}
-        </span>
+        {/* 
+          3-Column Symmetrical Control Row:
+          - Left: Open Queue button
+          - Center: [Previous] [PLAY/PAUSE] [Next] (strictly centered)
+          - Right: More ▾ dropdown (Volume, Mute, Shuffle, Repeat, Video Toggle)
+        */}
+        <div className="mt-3.5 grid grid-cols-3 items-center px-1">
+          {/* Column 1: Left - Queue Button */}
+          <div className="justify-self-start">
+            <button
+              onClick={() => setQueueOpen(true)}
+              aria-label="Open Queue"
+              title="Open Queue / Now Playing [Q]"
+              className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white/70 backdrop-blur-md transition-all hover:bg-white/15 hover:text-white"
+            >
+              <ListMusic className="size-3.5 text-amber-400" />
+              <span className="hidden sm:inline font-mono text-[11px]">Queue</span>
+            </button>
+          </div>
+
+          {/* Column 2: Center - Perfectly Symmetrical Transport Controls */}
+          <div className="flex items-center justify-center gap-2 justify-self-center">
+            {/* Previous Track */}
+            <button
+              onClick={previous}
+              disabled={!ready}
+              aria-label="Previous track"
+              className="rounded-full p-2 text-white/70 transition-all hover:bg-white/10 hover:text-white disabled:opacity-40"
+            >
+              <SkipBack className="size-4" />
+            </button>
+
+            {/* Centered Play/Pause Button */}
+            <button
+              onClick={hasCheckpoint && !playing ? resume : toggle}
+              disabled={!ready}
+              aria-label={playing ? "Pause" : "Play"}
+              className="rounded-full bg-white p-3 text-zinc-950 shadow-lg shadow-white/10 transition-all hover:scale-105 hover:bg-white/90 active:scale-95 disabled:opacity-50"
+            >
+              {buffering || state === "loading" ? (
+                <Loader2 className="size-5 animate-spin" />
+              ) : playing ? (
+                <Pause className="size-5 fill-current" />
+              ) : (
+                <Play className="size-5 translate-x-0.5 fill-current" />
+              )}
+            </button>
+
+            {/* Next Track */}
+            <button
+              onClick={next}
+              disabled={!ready}
+              aria-label="Next track"
+              className="rounded-full p-2 text-white/70 transition-all hover:bg-white/10 hover:text-white disabled:opacity-40"
+            >
+              <SkipForward className="size-4" />
+            </button>
+          </div>
+
+          {/* Column 3: Right - Compact More ▾ Dropdown */}
+          <div ref={moreMenuRef} className="relative justify-self-end">
+            <button
+              onClick={() => setMoreMenuOpen((prev) => !prev)}
+              aria-haspopup="true"
+              aria-expanded={moreMenuOpen}
+              aria-label="More playback options"
+              className="flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white/70 backdrop-blur-md transition-all hover:bg-white/15 hover:text-white"
+            >
+              <span className="font-mono text-[11px]">More</span>
+              <MoreHorizontal className="size-3.5" />
+            </button>
+
+            {/* More ▾ Popover Menu */}
+            {moreMenuOpen && (
+              <div
+                role="menu"
+                className="absolute right-0 bottom-full mb-2 w-64 rounded-2xl border border-white/15 bg-zinc-950/95 p-3 shadow-2xl backdrop-blur-2xl z-50 animate-in fade-in zoom-in-95 duration-150"
+              >
+                {/* Volume Slider & Mute Row */}
+                <div className="flex items-center justify-between gap-3 px-1 py-1.5">
+                  <button
+                    onClick={toggleMute}
+                    aria-label={muted ? "Unmute" : "Mute"}
+                    className="rounded-full p-1.5 text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+                  >
+                    {muted || volume === 0 ? (
+                      <VolumeX className="size-4" />
+                    ) : volume < 50 ? (
+                      <Volume1 className="size-4" />
+                    ) : (
+                      <Volume2 className="size-4" />
+                    )}
+                  </button>
+
+                  <input
+                    type="range"
+                    aria-label="Volume"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={muted ? 0 : volume}
+                    onChange={(e) => setVolume(Number(e.target.value))}
+                    className="flex-1 h-1.5 rounded-lg appearance-none bg-white/20 accent-amber-300 cursor-pointer"
+                  />
+                  <span className="w-7 text-right font-mono text-[10px] text-white/60 tabular-nums">
+                    {muted ? 0 : volume}%
+                  </span>
+                </div>
+
+                <div className="my-2 border-t border-white/10" />
+
+                {/* Shuffle and Repeat Row */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={toggleShuffle}
+                    className={`flex items-center justify-center gap-1.5 rounded-xl px-2.5 py-2 text-xs transition-colors ${
+                      shuffle
+                        ? "bg-amber-400/20 text-amber-300 font-medium"
+                        : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    <Shuffle className="size-3.5" />
+                    <span>Shuffle {shuffle ? "On" : "Off"}</span>
+                  </button>
+
+                  <button
+                    onClick={cycleRepeat}
+                    className={`flex items-center justify-center gap-1.5 rounded-xl px-2.5 py-2 text-xs transition-colors ${
+                      repeat !== "off"
+                        ? "bg-amber-400/20 text-amber-300 font-medium"
+                        : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    {repeat === "one" ? (
+                      <Repeat1 className="size-3.5" />
+                    ) : (
+                      <Repeat className="size-3.5" />
+                    )}
+                    <span className="capitalize">
+                      {repeat === "off" ? "Repeat Off" : repeat === "one" ? "Repeat One" : "Repeat All"}
+                    </span>
+                  </button>
+                </div>
+
+                <div className="my-2 border-t border-white/10" />
+
+                {/* Video Player Toggle */}
+                <button
+                  onClick={() => setEmbedExpanded((prev) => !prev)}
+                  className="flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-xs text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <Tv className="size-4 text-amber-400" />
+                    <span>Video Player Window</span>
+                  </div>
+                  <span className="font-mono text-[10px] text-amber-300">
+                    {isEmbedExpanded ? "Expanded" : "Compact"}
+                  </span>
+                </button>
+
+                {/* Open Queue directly from menu */}
+                <button
+                  onClick={() => {
+                    setMoreMenuOpen(false);
+                    setQueueOpen(true);
+                  }}
+                  className="flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-xs text-white/70 hover:bg-white/10 hover:text-white transition-colors"
+                >
+                  <ListMusic className="size-4 text-amber-400" />
+                  <span>Now Playing / Queue</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Track index / metadata footnote */}
+        {track && track.total > 0 && !error && (
+          <p className="mt-3 text-center font-mono text-[10px] tracking-[0.18em] text-white/40 uppercase">
+            Track {track.index} of {track.total}
+          </p>
+        )}
       </div>
 
-      {/* Transport buttons & Volume & Extras */}
-      <div className="mt-3.5 flex items-center justify-between px-1">
-        {/* Playback Transport */}
-        <div className="flex items-center gap-1.5">
-          {/* Previous Track */}
-          <button
-            onClick={previous}
-            disabled={!ready}
-            aria-label="Previous track"
-            className="rounded-full p-2 text-white/70 transition-all hover:bg-white/10 hover:text-white disabled:opacity-40"
-          >
-            <SkipBack className="size-4" />
-          </button>
-
-          {/* Big Play/Pause Button */}
-          <button
-            onClick={toggle}
-            disabled={!ready}
-            aria-label={playing ? "Pause" : "Play"}
-            className="rounded-full bg-white p-3 text-zinc-950 shadow-lg shadow-white/10 transition-all hover:scale-105 hover:bg-white/90 active:scale-95 disabled:opacity-50"
-          >
-            {buffering ? (
-              <Loader2 className="size-5 animate-spin" />
-            ) : playing ? (
-              <Pause className="size-5 fill-current" />
-            ) : (
-              <Play className="size-5 translate-x-0.5 fill-current" />
-            )}
-          </button>
-
-          {/* Next Track */}
-          <button
-            onClick={next}
-            disabled={!ready}
-            aria-label="Next track"
-            className="rounded-full p-2 text-white/70 transition-all hover:bg-white/10 hover:text-white disabled:opacity-40"
-          >
-            <SkipForward className="size-4" />
-          </button>
-        </div>
-
-        {/* Shuffle & Repeat Toggles */}
-        <div className="flex items-center gap-1">
-          <button
-            onClick={toggleShuffle}
-            disabled={!ready}
-            title={shuffle ? "Shuffle On" : "Shuffle Off"}
-            aria-label="Toggle shuffle"
-            className={`rounded-full p-2 transition-colors ${
-              shuffle ? "text-amber-400 bg-amber-400/10" : "text-white/40 hover:text-white/80"
-            }`}
-          >
-            <Shuffle className="size-3.5" />
-          </button>
-
-          <button
-            onClick={cycleRepeat}
-            disabled={!ready}
-            title={`Repeat: ${repeat}`}
-            aria-label={`Cycle repeat mode (${repeat})`}
-            className={`rounded-full p-2 transition-colors ${
-              repeat !== "off" ? "text-amber-400 bg-amber-400/10" : "text-white/40 hover:text-white/80"
-            }`}
-          >
-            {repeat === "one" ? (
-              <Repeat1 className="size-3.5" />
-            ) : (
-              <Repeat className="size-3.5" />
-            )}
-          </button>
-
-          {/* YouTube Video expand button (for full ToS compliance) */}
-          <button
-            onClick={() => setEmbedExpanded((prev) => !prev)}
-            title={isEmbedExpanded ? "Hide Video Window" : "Show Video Player"}
-            aria-label="Toggle video player window"
-            className={`rounded-full p-2 transition-colors ${
-              isEmbedExpanded ? "text-amber-400 bg-amber-400/10" : "text-white/40 hover:text-white/80"
-            }`}
-          >
-            <Tv className="size-3.5" />
-          </button>
-        </div>
-
-        {/* Volume controls */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={toggleMute}
-            disabled={!ready}
-            aria-label={muted ? "Unmute" : "Mute"}
-            className="rounded-full p-1.5 text-white/70 transition-colors hover:bg-white/10 hover:text-white"
-          >
-            {muted || volume === 0 ? (
-              <VolumeX className="size-4" />
-            ) : volume < 50 ? (
-              <Volume1 className="size-4" />
-            ) : (
-              <Volume2 className="size-4" />
-            )}
-          </button>
-
-          <input
-            type="range"
-            aria-label="Volume"
-            min={0}
-            max={100}
-            step={1}
-            value={muted ? 0 : volume}
-            onChange={(e) => setVolume(Number(e.target.value))}
-            className="w-18 h-1 rounded-lg appearance-none bg-white/20 accent-white/80 cursor-pointer"
-          />
-        </div>
-      </div>
-
-      {/* Track index / metadata footnote */}
-      {track && track.total > 0 && !error && (
-        <p className="mt-3 text-center font-mono text-[10px] tracking-[0.18em] text-white/40 uppercase">
-          Track {track.index} of {track.total}
-        </p>
-      )}
-    </div>
+      {/* Now Playing / Queue Panel Drawer */}
+      <NowPlayingPanel isOpen={queueOpen} onClose={() => setQueueOpen(false)} />
+    </>
   );
 }

@@ -27,9 +27,10 @@ import {
 type PlaylistModalProps = {
   open: boolean;
   onClose: () => void;
+  initialTab?: "list" | "add";
 };
 
-export function PlaylistModal({ open, onClose }: PlaylistModalProps) {
+export function PlaylistModal({ open, onClose, initialTab = "list" }: PlaylistModalProps) {
   const {
     playlists,
     activePlaylistId,
@@ -43,7 +44,10 @@ export function PlaylistModal({ open, onClose }: PlaylistModalProps) {
     reorderPlaylists,
   } = usePlaylistStore();
 
-  const [activeTab, setActiveTab] = useState<"list" | "add">("list");
+  const [customTab, setCustomTab] = useState<"list" | "add" | null>(null);
+  const activeTab = customTab ?? initialTab;
+  const setActiveTab = (tab: "list" | "add") => setCustomTab(tab);
+
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
@@ -55,6 +59,11 @@ export function PlaylistModal({ open, onClose }: PlaylistModalProps) {
   const [formError, setFormError] = useState<string | null>(null);
 
   if (!open) return null;
+
+  const handleClose = () => {
+    setCustomTab(null);
+    onClose();
+  };
 
   const handleStartRename = (p: Playlist) => {
     setEditingId(p.id);
@@ -130,7 +139,7 @@ export function PlaylistModal({ open, onClose }: PlaylistModalProps) {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm animate-in fade-in duration-200"
-      onClick={onClose}
+      onClick={handleClose}
     >
       <div
         className="relative w-full max-w-lg rounded-2xl border border-white/10 bg-zinc-950/95 p-6 shadow-2xl shadow-black/90 backdrop-blur-xl"
@@ -145,7 +154,7 @@ export function PlaylistModal({ open, onClose }: PlaylistModalProps) {
             <h2 className="font-heading text-xl text-white">Playlist Library</h2>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="rounded-lg p-1.5 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
             aria-label="Close playlists"
           >

@@ -38,7 +38,7 @@ export function LocalClock({ className, isFullScreenMode, onExitFullScreen }: Lo
     );
   }
 
-  const { hours, minutes, seconds, amPm, dateStr, tzAbbr, colonVisible } = time;
+  const { hours, minutes, seconds, amPm, dateStr, tzAbbr } = time;
 
   return (
     <>
@@ -91,10 +91,16 @@ export function LocalClock({ className, isFullScreenMode, onExitFullScreen }: Lo
           {/* Smooth blinking colon that becomes transparent without shifting layout */}
           <span
             className={cn(
-              "inline-block transition-opacity duration-150",
-              settings.blinkingColons && !colonVisible ? "opacity-0" : "opacity-90 text-amber-300/80"
+              "inline-block font-mono text-amber-300/80 transition-opacity",
+              settings.blinkingColons && "animate-blink"
             )}
-            style={{ width: "0.55ch", textAlign: "center" }}
+            style={
+              {
+                width: "0.55ch",
+                textAlign: "center",
+                "--blink-duration": `${settings.blinkInterval}ms`,
+              } as React.CSSProperties
+            }
             aria-hidden="true"
           >
             :
@@ -106,10 +112,16 @@ export function LocalClock({ className, isFullScreenMode, onExitFullScreen }: Lo
             <>
               <span
                 className={cn(
-                  "inline-block transition-opacity duration-150",
-                  settings.blinkingColons && !colonVisible ? "opacity-0" : "opacity-90 text-amber-300/80"
+                  "inline-block font-mono text-amber-300/80 transition-opacity",
+                  settings.blinkingColons && "animate-blink"
                 )}
-                style={{ width: "0.55ch", textAlign: "center" }}
+                style={
+                  {
+                    width: "0.55ch",
+                    textAlign: "center",
+                    "--blink-duration": `${settings.blinkInterval}ms`,
+                  } as React.CSSProperties
+                }
                 aria-hidden="true"
               >
                 :
