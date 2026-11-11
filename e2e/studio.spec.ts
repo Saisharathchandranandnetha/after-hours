@@ -88,6 +88,25 @@ test.describe("After Hours Studio E2E", () => {
     await expect(drawer).not.toBeVisible();
   });
 
+  test("toggles and expands live stream video using the TV button", async ({ page }) => {
+    await page.goto("/");
+
+    // Locate the TV button on the cassette deck
+    const tvBtn = page.getByRole("button", { name: /toggle live video stream window/i });
+    await expect(tvBtn).toBeVisible();
+
+    // Click TV button to expand video
+    await tvBtn.click();
+
+    // Video container should be expanded (has contract button)
+    const contractBtn = page.getByRole("button", { name: /contract video player/i });
+    await expect(contractBtn).toBeVisible();
+
+    // Click contract button to collapse
+    await contractBtn.click();
+    await expect(contractBtn).not.toBeVisible();
+  });
+
   test("opens More options in cassette deck with volume, shuffle, repeat, and video toggle", async ({
     page,
   }) => {

@@ -121,16 +121,22 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         >
           {/* Header bar with controls */}
           <div className="absolute top-0 left-0 right-0 h-7 bg-gradient-to-b from-black/80 to-transparent px-2 flex items-center justify-between z-50 pointer-events-auto">
-            <div className="flex items-center gap-1.5 text-[10px] font-mono text-white/70">
-              <Tv className="size-3 text-amber-400" />
+            <button
+              type="button"
+              onClick={() => setEmbedExpanded((prev) => !prev)}
+              className="flex items-center gap-1.5 text-[10px] font-mono text-white/80 hover:text-white transition-colors cursor-pointer"
+              title={isEmbedExpanded ? "Collapse video" : "Expand live stream video [TV]"}
+            >
+              <Tv className="size-3 text-amber-400 shrink-0" />
               <span className="truncate max-w-[120px]">
                 {activePlayer.track?.title || "Live Stream"}
               </span>
-            </div>
+            </button>
             <div className="flex items-center gap-1">
               <button
+                type="button"
                 onClick={() => setEmbedExpanded((prev) => !prev)}
-                className="rounded p-1 text-white/70 hover:text-white hover:bg-white/10 transition-colors"
+                className="rounded p-1 text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
                 title={isEmbedExpanded ? "Contract Player" : "Expand Player"}
                 aria-label={isEmbedExpanded ? "Contract Video Player" : "Expand Video Player"}
               >

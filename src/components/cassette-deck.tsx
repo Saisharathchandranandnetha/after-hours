@@ -173,7 +173,19 @@ export function CassetteDeck({ onOpenTimer, onToggleFocusMode }: CassetteDeckPro
         {/* Progress timeline bar */}
         <div className="mt-4 flex items-center gap-3 px-1">
           <span className="w-10 shrink-0 font-mono text-[11px] text-white/60 tabular-nums">
-            {live ? "live" : formatDuration(displayed)}
+            {live ? (
+              <button
+                type="button"
+                onClick={() => setEmbedExpanded(true)}
+                title="Expand live stream"
+                className="inline-flex items-center gap-1 text-amber-400 hover:text-amber-300 font-semibold"
+              >
+                <Tv className="size-3" />
+                <span>live</span>
+              </button>
+            ) : (
+              formatDuration(displayed)
+            )}
           </span>
 
           <div className="relative flex-1 flex items-center">
@@ -205,13 +217,13 @@ export function CassetteDeck({ onOpenTimer, onToggleFocusMode }: CassetteDeckPro
 
         {/* 
           3-Column Symmetrical Control Row:
-          - Left: Open Queue button
+          - Left: Open Queue & TV Live Stream buttons
           - Center: [Previous] [PLAY/PAUSE] [Next] (strictly centered)
           - Right: More ▾ dropdown (Volume, Mute, Shuffle, Repeat, Video Toggle)
         */}
         <div className="mt-3.5 grid grid-cols-3 items-center px-1">
-          {/* Column 1: Left - Queue Button */}
-          <div className="justify-self-start">
+          {/* Column 1: Left - Queue & TV Buttons */}
+          <div className="flex items-center gap-1.5 justify-self-start">
             <button
               onClick={() => setQueueOpen(true)}
               aria-label="Open Queue"
@@ -220,6 +232,21 @@ export function CassetteDeck({ onOpenTimer, onToggleFocusMode }: CassetteDeckPro
             >
               <ListMusic className="size-3.5 text-amber-400" />
               <span className="hidden sm:inline font-mono text-[11px]">Queue</span>
+            </button>
+
+            {/* TV Button to expand live stream video */}
+            <button
+              onClick={() => setEmbedExpanded((prev) => !prev)}
+              aria-label="Toggle live video stream window"
+              title={isEmbedExpanded ? "Collapse video" : "Expand live stream video [TV]"}
+              className={`flex items-center gap-1 rounded-full border px-2.5 py-1.5 text-xs transition-all backdrop-blur-md ${
+                isEmbedExpanded
+                  ? "border-amber-400/50 bg-amber-400/20 text-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.3)]"
+                  : "border-white/10 bg-white/5 text-white/70 hover:bg-white/15 hover:text-white"
+              }`}
+            >
+              <Tv className="size-3.5 text-amber-400" />
+              <span className="hidden sm:inline font-mono text-[11px]">TV</span>
             </button>
           </div>
 
