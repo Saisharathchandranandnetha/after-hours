@@ -244,26 +244,24 @@ export function CassetteDeck({ onOpenTimer, onToggleFocusMode }: CassetteDeckPro
               <span className="hidden sm:inline font-mono text-[11px]">Queue</span>
             </button>
 
-            {/* TV Button to expand/unhide live stream video */}
+            {/* TV Button to launch / hide live stream video */}
             <button
               onClick={() => {
                 if (isEmbedHidden) {
                   setEmbedHidden(false);
                   setEmbedExpanded(true);
                 } else {
-                  setEmbedExpanded((prev) => !prev);
+                  setEmbedHidden(true);
                 }
               }}
               aria-label="Toggle live video stream window"
               title={
                 isEmbedHidden
-                  ? "Show live stream video"
-                  : isEmbedExpanded
-                    ? "Collapse video"
-                    : "Expand live stream video [TV]"
+                  ? "Launch live stream video [TV]"
+                  : "Hide live stream video [TV]"
               }
-              className={`flex items-center gap-1 rounded-full border px-2.5 py-1.5 text-xs transition-all backdrop-blur-md ${
-                !isEmbedHidden && isEmbedExpanded
+              className={`flex items-center gap-1 rounded-full border px-2.5 py-1.5 text-xs transition-all backdrop-blur-md cursor-pointer ${
+                !isEmbedHidden
                   ? "border-amber-400/50 bg-amber-400/20 text-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.3)]"
                   : "border-white/10 bg-white/5 text-white/70 hover:bg-white/15 hover:text-white"
               }`}

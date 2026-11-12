@@ -45,7 +45,7 @@ export function StudioMenu({
 
   const { playlists, activePlaylistId, setActivePlaylist } = usePlaylistStore();
   const timer = useTimerStore();
-  const { isEmbedHidden, setEmbedHidden, isEmbedExpanded } = usePlayerContext();
+  const { isEmbedHidden, setEmbedHidden, setEmbedExpanded } = usePlayerContext();
 
   // Close when clicking outside or pressing Escape
   useEffect(() => {
@@ -266,22 +266,27 @@ export function StudioMenu({
 
           <div className="my-1 border-t border-white/10" />
 
-          {/* South Item: Live Stream Window (Hide / Show) */}
+          {/* South Item: Live Stream Window (Launch / Hide) */}
           <button
             type="button"
             onClick={() => {
               setIsOpen(false);
-              setEmbedHidden((prev) => !prev);
+              if (isEmbedHidden) {
+                setEmbedHidden(false);
+                setEmbedExpanded(true);
+              } else {
+                setEmbedHidden(true);
+              }
             }}
             className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-xs text-white/80 transition-colors hover:bg-white/10 hover:text-white"
-            aria-label={isEmbedHidden ? "Show live stream video" : "Hide live stream video"}
+            aria-label={isEmbedHidden ? "Launch live stream video" : "Hide live stream video"}
           >
             <div className="flex items-center gap-2.5">
               <Tv className="size-4 text-amber-400" />
-              <span>{isEmbedHidden ? "Show Live Stream" : "Hide Live Stream"}</span>
+              <span>{isEmbedHidden ? "Launch Live Stream" : "Hide Live Stream"}</span>
             </div>
             <span className="font-mono text-[10px] text-white/40">
-              {isEmbedHidden ? "Hidden" : isEmbedExpanded ? "Expanded" : "Compact"}
+              {isEmbedHidden ? "Off" : "Live"}
             </span>
           </button>
 

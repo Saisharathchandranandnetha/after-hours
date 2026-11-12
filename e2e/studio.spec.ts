@@ -1,22 +1,17 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("After Hours Studio E2E", () => {
-  test("renders cinematic landing layout with clock, editorial title, and cassette deck", async ({
+  test("renders cinematic landing layout with clock, presence count, and cassette deck", async ({
     page,
   }) => {
     await page.goto("/");
 
     // Check title
-    await expect(page).toHaveTitle(/After[- ]Hours/i);
+    await expect(page).toHaveTitle(/Netha's after-hours/i);
 
-    // Check editorial heading
-    const heading = page.locator("h1");
-    await expect(heading).toBeVisible();
-    await expect(heading).toContainText(/late night coding/i);
-
-    // Check subtitle
-    const subtitle = page.locator("text=somewhere between ideas and execution");
-    await expect(subtitle).toBeVisible();
+    // Check live listener presence count
+    const presenceBadge = page.getByTitle(/live studio sessions/i);
+    await expect(presenceBadge).toBeVisible();
 
     // Check clock element
     const clockTime = page.locator("time");
@@ -131,8 +126,8 @@ test.describe("After Hours Studio E2E", () => {
     const studioBtn = page.getByRole("button", { name: /studio menu/i });
     await studioBtn.click();
 
-    // South button should now say "Show Live Stream"
-    const toggleLiveBtn = page.getByRole("button", { name: /show live stream video/i });
+    // South button should now say "Launch Live Stream"
+    const toggleLiveBtn = page.getByRole("button", { name: /launch live stream video/i });
     await expect(toggleLiveBtn).toBeVisible();
 
     // Click to show live stream again
@@ -181,13 +176,12 @@ test.describe("After Hours Studio E2E", () => {
     const exitFocusBtn = page.getByRole("button", { name: /exit focus mode/i });
     await expect(exitFocusBtn).toBeVisible();
 
-    // Editorial heading should be hidden during Focus Mode
-    const heading = page.locator("h1");
-    await expect(heading).not.toBeVisible();
+    // Navigation bar with Studio menu should be hidden during Focus Mode
+    await expect(studioBtn).not.toBeVisible();
 
     // Click Exit Focus Mode button
     await exitFocusBtn.click();
-    await expect(heading).toBeVisible();
+    await expect(page.getByRole("button", { name: /studio menu/i })).toBeVisible();
   });
 
   test("opens focus timer and verifies timer persistence", async ({ page }) => {

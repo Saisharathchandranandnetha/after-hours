@@ -11,7 +11,7 @@ import { useSettings } from "@/lib/settings";
 import { X, Sparkles } from "lucide-react";
 
 export default function Home() {
-  const { personalization, clock, updateClock, hydrate } = useSettings();
+  const { clock, updateClock, hydrate } = useSettings();
   const [isFullScreen, setIsFullScreen] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
 
@@ -123,19 +123,7 @@ export default function Home() {
               />
             )}
 
-            {/* Editorial Center Title (Hidden during Focus Mode for zero distractions) */}
-            {!isFocusMode && (
-              <div className="flex flex-col items-center justify-center text-center my-auto py-4 select-none">
-                <h1 className="font-heading text-5xl sm:text-7xl md:text-8xl leading-[0.95] text-white/95 drop-shadow-[0_2px_28px_rgba(0,0,0,0.9)] tracking-tight">
-                  {personalization.headingText || "late night coding"}
-                </h1>
-                {personalization.subtitleText && (
-                  <p className="mt-4 font-mono text-xs sm:text-sm tracking-[0.25em] text-white/50 uppercase drop-shadow-[0_1px_12px_rgba(0,0,0,0.8)]">
-                    {personalization.subtitleText}
-                  </p>
-                )}
-              </div>
-            )}
+            {/* Editorial Center Title removed as requested */}
 
             {/* Bottom Centered Cassette Deck */}
             <footer className="flex justify-center pb-2 select-none mt-auto">

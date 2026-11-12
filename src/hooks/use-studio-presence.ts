@@ -121,14 +121,15 @@ export function useStudioPresence() {
       const listUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/presence?key=${apiKey}`;
 
       try {
-        // Write this tab's heartbeat to Firestore
+        // Write this tab's heartbeat to Firestore (compliant with firestore.rules timestamp schema)
         await fetch(docUrl, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             fields: {
-              lastSeen: { integerValue: String(Date.now()) },
+              lastSeen: { timestampValue: new Date().toISOString() },
               tabId: { stringValue: tabId },
+              status: { stringValue: "online" },
             },
           }),
         });
@@ -141,14 +142,16 @@ export function useStudioPresence() {
             const now = Date.now();
             let liveRemoteCount = 0;
             for (const doc of data.documents) {
-              const lastSeenVal = Number(doc.fields?.lastSeen?.integerValue || 0);
-              if (now - lastSeenVal < 15_000) {
+              const lastSeenIso = doc.fields?.lastSeen?.timestampValue;
+              const lastSeenVal = lastSeenIso ? Date.parse(lastSeenIso) : 0;
+              const status = doc.fields?.status?.stringValue || "online";
+              if (status !== "offline" && now - lastSeenVal < 15_000) {
                 liveRemoteCount++;
               }
             }
-            if (isMounted && liveRemoteCount > 0) {
+            if (isMounted) {
               const local = syncLocalTabs();
-              setCount(Math.max(local, liveRemoteCount));
+              setCount(Math.max(local, liveRemoteCount, 1));
             }
           }
         }
@@ -180,23 +183,12 @@ export function useStudioPresence() {
         }
       }
 
-      // Send beacon to mark inactive on departure
+      // Delete document from Firestore immediately on departure
       const { projectId, apiKey } = firebaseConfig;
-      if (projectId && apiKey && navigator.sendBeacon) {
+      if (projectId && apiKey) {
         const docUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/presence/${tabId}?key=${apiKey}`;
         try {
-          const blob = new Blob(
-            [
-              JSON.stringify({
-                fields: {
-                  lastSeen: { integerValue: "0" },
-                  tabId: { stringValue: tabId },
-                },
-              }),
-            ],
-            { type: "application/json" }
-          );
-          navigator.sendBeacon(docUrl, blob);
+          fetch(docUrl, { method: "DELETE", keepalive: true }).catch(() => {});
         } catch {
           // Ignored
         }

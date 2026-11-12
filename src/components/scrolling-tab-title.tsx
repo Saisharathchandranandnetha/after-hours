@@ -4,8 +4,8 @@ import { useEffect, useRef } from "react";
 import { useTimerStore } from "@/lib/timer-store";
 import { useSettings } from "@/lib/settings";
 
-const DEFAULT_TITLE = "✦ Netha's After-Hours ✦   ";
-const SCROLL_INTERVAL_MS = 200;
+const DEFAULT_TITLE = "  Netha's after-hours  •  ";
+const SCROLL_INTERVAL_MS = 320;
 
 interface ScrollingTabTitleProps {
   text?: string;
