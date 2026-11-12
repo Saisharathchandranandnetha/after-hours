@@ -82,6 +82,7 @@ export function useYouTubePlayer({
   const [hasCheckpoint, setHasCheckpoint] = useState(false);
 
   const playerRef = useRef<YT.Player | null>(null);
+  const pendingPlayRef = useRef<boolean>(false);
   const currentSourceRef = useRef<string>("");
   const repeatRef = useRef<RepeatMode>(repeat);
   const isPlayingRef = useRef<boolean>(playing);
@@ -233,6 +234,32 @@ export function useYouTubePlayer({
             }
 
             syncTrack(event.target);
+
+            // If user clicked Play before onReady fired, immediately begin playback
+            if (pendingPlayRef.current) {
+              pendingPlayRef.current = false;
+              try {
+                if (isPlaylist) {
+                  const targetIndex = hasMatchingCheckpoint ? savedCheckpoint.playlistIndex : 0;
+                  const curIndex =
+                    typeof event.target.getPlaylistIndex === "function"
+                      ? event.target.getPlaylistIndex()
+                      : -1;
+                  if (curIndex < 0) {
+                    event.target.playVideoAt(targetIndex);
+                  } else {
+                    event.target.playVideo();
+                  }
+                } else {
+                  event.target.playVideo();
+                }
+                setPlaying(true);
+                isPlayingRef.current = true;
+                setPlaybackState("playing");
+              } catch (e) {
+                console.warn("Failed pending play onReady:", e);
+              }
+            }
           },
           onStateChange: (event) => {
             if (cancelled) return;
@@ -444,30 +471,122 @@ export function useYouTubePlayer({
   }, [saveCurrentCheckpoint]);
 
   const toggle = useCallback(() => {
-    if (!player) return;
-    if (playing) {
-      player.pauseVideo();
-    } else {
-      player.playVideo();
+    const inst = playerRef.current;
+    if (!inst) {
+      pendingPlayRef.current = !pendingPlayRef.current;
+      setPlaying(pendingPlayRef.current);
+      return;
     }
-  }, [player, playing]);
+    try {
+      const state = typeof inst.getPlayerState === "function" ? inst.getPlayerState() : -1;
+      // 1 = PLAYING, 3 = BUFFERING
+      if (state === 1 || state === 3 || isPlayingRef.current) {
+        inst.pauseVideo();
+        setPlaying(false);
+        isPlayingRef.current = false;
+        setPlaybackState("paused");
+        saveCurrentCheckpoint(true, "paused");
+      } else {
+        // State is PAUSED (2), UNSTARTED (-1), CUED (5), or ENDED (0)
+        if (sourceType === "youtube" && (state === -1 || state === 5)) {
+          const curIndex = typeof inst.getPlaylistIndex === "function" ? inst.getPlaylistIndex() : -1;
+          if (curIndex < 0) {
+            inst.playVideoAt(0);
+          } else {
+            inst.playVideo();
+          }
+        } else {
+          inst.playVideo();
+        }
+        setPlaying(true);
+        isPlayingRef.current = true;
+        setPlaybackState("playing");
+      }
+    } catch {
+      try {
+        if (isPlayingRef.current) {
+          inst.pauseVideo();
+          setPlaying(false);
+          isPlayingRef.current = false;
+        } else {
+          inst.playVideo();
+          setPlaying(true);
+          isPlayingRef.current = true;
+        }
+      } catch {}
+    }
+  }, [sourceType, saveCurrentCheckpoint]);
 
   const play = useCallback(() => {
-    if (!player) return;
-    player.playVideo();
-  }, [player]);
+    const inst = playerRef.current;
+    if (!inst) {
+      pendingPlayRef.current = true;
+      setPlaying(true);
+      return;
+    }
+    try {
+      const state = typeof inst.getPlayerState === "function" ? inst.getPlayerState() : -1;
+      if (sourceType === "youtube" && (state === -1 || state === 5)) {
+        const curIndex = typeof inst.getPlaylistIndex === "function" ? inst.getPlaylistIndex() : -1;
+        if (curIndex < 0) {
+          inst.playVideoAt(0);
+        } else {
+          inst.playVideo();
+        }
+      } else {
+        inst.playVideo();
+      }
+      setPlaying(true);
+      isPlayingRef.current = true;
+      setPlaybackState("playing");
+    } catch {
+      inst.playVideo();
+    }
+  }, [sourceType]);
 
   const pause = useCallback(() => {
-    if (!player) return;
-    player.pauseVideo();
-    saveCurrentCheckpoint(true, "paused");
-  }, [player, saveCurrentCheckpoint]);
+    const inst = playerRef.current;
+    pendingPlayRef.current = false;
+    if (!inst) {
+      setPlaying(false);
+      return;
+    }
+    try {
+      inst.pauseVideo();
+      setPlaying(false);
+      isPlayingRef.current = false;
+      setPlaybackState("paused");
+      saveCurrentCheckpoint(true, "paused");
+    } catch {}
+  }, [saveCurrentCheckpoint]);
 
   const resume = useCallback(() => {
-    if (!player) return;
-    player.playVideo();
+    const inst = playerRef.current;
     setHasCheckpoint(false);
-  }, [player]);
+    if (!inst) {
+      pendingPlayRef.current = true;
+      setPlaying(true);
+      return;
+    }
+    try {
+      const state = typeof inst.getPlayerState === "function" ? inst.getPlayerState() : -1;
+      if (sourceType === "youtube" && (state === -1 || state === 5)) {
+        const curIndex = typeof inst.getPlaylistIndex === "function" ? inst.getPlaylistIndex() : -1;
+        if (curIndex < 0) {
+          inst.playVideoAt(0);
+        } else {
+          inst.playVideo();
+        }
+      } else {
+        inst.playVideo();
+      }
+      setPlaying(true);
+      isPlayingRef.current = true;
+      setPlaybackState("playing");
+    } catch {
+      inst.playVideo();
+    }
+  }, [sourceType]);
 
   const next = useCallback(() => {
     if (!player) return;

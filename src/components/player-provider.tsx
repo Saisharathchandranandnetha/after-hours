@@ -120,7 +120,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         <div
           className={`fixed transition-all duration-300 select-none ${
             isEmbedHidden
-              ? "opacity-0 pointer-events-none translate-y-12 scale-90 -z-50 bottom-5 right-5 w-[200px] h-[120px]"
+              ? "opacity-0 pointer-events-none -translate-x-[9999px] bottom-5 right-5 w-[200px] h-[120px]"
               : isEmbedExpanded
                 ? "z-50 pointer-events-auto bottom-5 right-5 w-[90vw] max-w-[500px] h-[280px] sm:w-[480px] sm:h-[270px] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] border border-amber-400/30 bg-black/95 backdrop-blur-xl"
                 : "z-50 pointer-events-auto bottom-3 right-3 sm:bottom-4 sm:right-4 w-[200px] h-[120px] sm:w-[240px] sm:h-[150px] rounded-xl shadow-xl border border-white/15 bg-black/90 backdrop-blur-md opacity-85 hover:opacity-100"
@@ -128,7 +128,11 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
           aria-label="YouTube Video Player"
         >
           {/* Header bar with controls */}
-          <div className="absolute top-0 left-0 right-0 h-7 bg-gradient-to-b from-black/80 to-transparent px-2 flex items-center justify-between z-50 pointer-events-auto">
+          <div
+            className={`absolute top-0 left-0 right-0 h-7 bg-gradient-to-b from-black/80 to-transparent px-2 flex items-center justify-between z-50 ${
+              isEmbedHidden ? "pointer-events-none" : "pointer-events-auto"
+            }`}
+          >
             <button
               type="button"
               onClick={() => setEmbedExpanded((prev) => !prev)}

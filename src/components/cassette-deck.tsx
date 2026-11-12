@@ -54,6 +54,7 @@ export function CassetteDeck({ onOpenTimer, onToggleFocusMode }: CassetteDeckPro
     error,
     hasCheckpoint,
     toggle,
+    pause,
     resume,
     next,
     previous,
@@ -276,21 +277,27 @@ export function CassetteDeck({ onOpenTimer, onToggleFocusMode }: CassetteDeckPro
             {/* Previous Track */}
             <button
               onClick={previous}
-              disabled={!ready}
               aria-label="Previous track"
-              className="rounded-full p-2 text-white/70 transition-all hover:bg-white/10 hover:text-white disabled:opacity-40"
+              className="rounded-full p-2 text-white/70 transition-all hover:bg-white/10 hover:text-white cursor-pointer active:scale-90"
             >
               <SkipBack className="size-4" />
             </button>
 
             {/* Centered Play/Pause Button */}
             <button
-              onClick={hasCheckpoint && !playing ? resume : toggle}
-              disabled={!ready}
+              onClick={() => {
+                if (playing) {
+                  pause();
+                } else if (hasCheckpoint) {
+                  resume();
+                } else {
+                  toggle();
+                }
+              }}
               aria-label={playing ? "Pause" : "Play"}
-              className="rounded-full bg-white p-3 text-zinc-950 shadow-lg shadow-white/10 transition-all hover:scale-105 hover:bg-white/90 active:scale-95 disabled:opacity-50"
+              className="rounded-full bg-white p-3 text-zinc-950 shadow-lg shadow-white/10 transition-all hover:scale-105 hover:bg-white/90 active:scale-95 cursor-pointer"
             >
-              {buffering || state === "loading" ? (
+              {buffering || (state === "loading" && !ready) ? (
                 <Loader2 className="size-5 animate-spin" />
               ) : playing ? (
                 <Pause className="size-5 fill-current" />
@@ -302,9 +309,8 @@ export function CassetteDeck({ onOpenTimer, onToggleFocusMode }: CassetteDeckPro
             {/* Next Track */}
             <button
               onClick={next}
-              disabled={!ready}
               aria-label="Next track"
-              className="rounded-full p-2 text-white/70 transition-all hover:bg-white/10 hover:text-white disabled:opacity-40"
+              className="rounded-full p-2 text-white/70 transition-all hover:bg-white/10 hover:text-white cursor-pointer active:scale-90"
             >
               <SkipForward className="size-4" />
             </button>

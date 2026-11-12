@@ -93,6 +93,7 @@ export function useStudioPresence() {
           if (type === "SYNC" || type === "LEAVE") {
             const active = syncLocalTabs();
             if (isMounted) setCount(active);
+            syncFirestorePresence().catch(() => {});
           }
         };
 
@@ -108,6 +109,7 @@ export function useStudioPresence() {
       if (e.key === LOCAL_STORAGE_KEY && isMounted) {
         const active = syncLocalTabs();
         setCount(active);
+        syncFirestorePresence().catch(() => {});
       }
     };
     window.addEventListener("storage", handleStorageChange);
@@ -118,13 +120,17 @@ export function useStudioPresence() {
       if (!projectId || !apiKey) return;
 
       const docUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/presence/${tabId}?key=${apiKey}`;
-      const listUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/presence?key=${apiKey}`;
+      // Add timestamp cache buster and explicit pageSize to avoid heuristic HTTP caching
+      const listUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/presence?key=${apiKey}&pageSize=100&_cb=${Date.now()}`;
 
       try {
         // Write this tab's heartbeat to Firestore (compliant with firestore.rules timestamp schema)
         await fetch(docUrl, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "Cache-Control": "no-cache",
+          },
           body: JSON.stringify({
             fields: {
               lastSeen: { timestampValue: new Date().toISOString() },
@@ -134,23 +140,49 @@ export function useStudioPresence() {
           }),
         });
 
-        // Query active presence collection
-        const res = await fetch(listUrl, { cache: "no-store" });
+        // Query active presence collection with cache-busting
+        const res = await fetch(listUrl, {
+          cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+          },
+        });
+
         if (res.ok) {
           const data = await res.json();
           if (data && Array.isArray(data.documents)) {
             const now = Date.now();
             let liveRemoteCount = 0;
+            const expiredTabIds: string[] = [];
+
             for (const doc of data.documents) {
               const lastSeenIso = doc.fields?.lastSeen?.timestampValue;
               const lastSeenVal = lastSeenIso ? Date.parse(lastSeenIso) : 0;
               const status = doc.fields?.status?.stringValue || "online";
-              if (status !== "offline" && now - lastSeenVal < 15_000) {
+              const timeDiff = Math.abs(now - lastSeenVal);
+
+              // Active window: within 25s (handles cross-device clock drift and background tab throttling)
+              if (status !== "offline" && timeDiff < 25_000) {
                 liveRemoteCount++;
+              } else if (timeDiff > 45_000) {
+                // Prune dead tabs from Firestore to keep collection fast and clean
+                const docTabId = doc.fields?.tabId?.stringValue || doc.name.split("/").pop();
+                if (docTabId) expiredTabIds.push(docTabId);
               }
             }
+
+            // Clean up expired documents asynchronously
+            if (expiredTabIds.length > 0) {
+              for (const deadId of expiredTabIds) {
+                const delUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/presence/${deadId}?key=${apiKey}`;
+                fetch(delUrl, { method: "DELETE" }).catch(() => {});
+              }
+            }
+
             if (isMounted) {
               const local = syncLocalTabs();
+              // Accurate live count: reflects additions and departures across all browsers
               setCount(Math.max(local, liveRemoteCount, 1));
             }
           }
@@ -165,10 +197,7 @@ export function useStudioPresence() {
 
     // 5. Heartbeat loop (every 2 seconds)
     const interval = setInterval(() => {
-      const active = syncLocalTabs();
-      if (isMounted) {
-        setCount((prev) => Math.max(active, prev));
-      }
+      syncLocalTabs();
       syncFirestorePresence().catch(() => {});
     }, HEARTBEAT_INTERVAL_MS);
 
