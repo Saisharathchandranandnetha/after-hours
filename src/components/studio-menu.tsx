@@ -151,7 +151,7 @@ export function StudioMenu({
                         }`}
                       >
                         <div className="flex items-center gap-2 truncate">
-                          {pl.name.toLowerCase() === "feel" ? (
+                          {pl.name.toLowerCase() === "feel" || pl.name.toLowerCase() === "phonk" ? (
                             <Disc className="size-3 text-amber-400 shrink-0" />
                           ) : (
                             <span className="size-1.5 rounded-full bg-white/30 shrink-0" />

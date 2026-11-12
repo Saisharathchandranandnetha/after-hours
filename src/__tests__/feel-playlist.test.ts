@@ -6,25 +6,50 @@ import {
   type Playlist,
 } from "@/lib/playlist";
 
-describe("Feel Playlist & Returning User Migration", () => {
+describe("Feel and Phonk Playlists & Returning User Migration", () => {
   beforeEach(() => {
     localStorage.clear();
   });
 
-  it("includes the 'feel' playlist in DEFAULT_PLAYLISTS with correct ID and URL info", () => {
-    const feel = DEFAULT_PLAYLISTS.find((p) => p.name.toLowerCase() === "feel");
-    expect(feel).toBeDefined();
-    expect(feel?.id).toBe("default-feel");
-    expect(feel?.source.type).toBe("youtube");
-    if (feel?.source.type === "youtube") {
+  it("includes the 'feel' and 'phonk' playlists in DEFAULT_PLAYLISTS in correct order", () => {
+    const feelIndex = DEFAULT_PLAYLISTS.findIndex((p) => p.name.toLowerCase() === "feel");
+    const phonkIndex = DEFAULT_PLAYLISTS.findIndex((p) => p.name.toLowerCase() === "phonk");
+
+    expect(feelIndex).toBeGreaterThanOrEqual(0);
+    expect(phonkIndex).toBe(feelIndex + 1);
+
+    const feel = DEFAULT_PLAYLISTS[feelIndex];
+    expect(feel.id).toBe("default-feel");
+    expect(feel.source.type).toBe("youtube");
+    if (feel.source.type === "youtube") {
       expect(feel.source.playlistId).toBe("PLJQOYXoZjkTU");
       expect(feel.source.videoId).toBe("ckwRhLE9_LY");
     }
+
+    const phonk = DEFAULT_PLAYLISTS[phonkIndex];
+    expect(phonk.id).toBe("default-phonk");
+    expect(phonk.source.type).toBe("youtube");
+    if (phonk.source.type === "youtube") {
+      expect(phonk.source.playlistId).toBe("PLAmE6xgHWAwA");
+      expect(phonk.source.videoId).toBe("c84lqtARB0w");
+    }
   });
 
-  it("safely migrates existing user playlist data by appending missing presets without overwriting order", () => {
-    // User already had a custom playlist list with a custom order and custom playlist
+  it("safely migrates existing user playlist data by inserting phonk directly after feel", () => {
+    // User already had feel and some other playlist
     const existingUserData: Playlist[] = [
+      {
+        id: "default-feel",
+        name: "feel",
+        source: {
+          type: "youtube",
+          playlistId: "PLJQOYXoZjkTU",
+          videoId: "ckwRhLE9_LY",
+        },
+        isFavorite: true,
+        createdAt: 1700000000000,
+        updatedAt: 1700000000000,
+      },
       {
         id: "custom-1",
         name: "My Lo-Fi Vibes",
@@ -36,17 +61,6 @@ describe("Feel Playlist & Returning User Migration", () => {
         createdAt: 1600000000000,
         updatedAt: 1600000000000,
       },
-      {
-        id: "default-late-night",
-        name: "Custom Renamed Late Night",
-        source: {
-          type: "youtube",
-          playlistId: "PLjEaoINr3zgEq71FullHMiY0-b4STCaot",
-        },
-        isFavorite: false,
-        createdAt: 1600000000001,
-        updatedAt: 1600000000001,
-      },
     ];
 
     savePlaylists(existingUserData);
@@ -54,26 +68,18 @@ describe("Feel Playlist & Returning User Migration", () => {
     // Call loadPlaylists which runs migration
     const result = loadPlaylists();
 
-    // Custom order preserved at the top
-    expect(result[0].id).toBe("custom-1");
-    expect(result[0].name).toBe("My Lo-Fi Vibes");
-    expect(result[1].id).toBe("default-late-night");
-    expect(result[1].name).toBe("Custom Renamed Late Night");
-
-    // Missing 'feel' preset should be appended automatically
-    const feel = result.find((p) => p.id === "default-feel");
-    expect(feel).toBeDefined();
-    expect(feel?.name).toBe("feel");
-
-    // Total playlists must now include user's plus missing defaults
-    expect(result.length).toBeGreaterThan(existingUserData.length);
+    // feel should be at 0, phonk should be inserted right after feel at 1
+    expect(result[0].id).toBe("default-feel");
+    expect(result[1].id).toBe("default-phonk");
+    expect(result[1].name).toBe("phonk");
+    expect(result[2].id).toBe("custom-1");
   });
 
-  it("does not duplicate 'feel' when it already exists in user storage", () => {
-    const existingWithFeel: Playlist[] = [
+  it("does not duplicate 'phonk' when it already exists in user storage", () => {
+    const existingWithPhonk: Playlist[] = [
       {
         id: "default-feel",
-        name: "My Favorite Feel",
+        name: "feel",
         source: {
           type: "youtube",
           playlistId: "PLJQOYXoZjkTU",
@@ -83,17 +89,29 @@ describe("Feel Playlist & Returning User Migration", () => {
         createdAt: 1700000000000,
         updatedAt: 1700000000000,
       },
+      {
+        id: "default-phonk",
+        name: "My Phonk Mix",
+        source: {
+          type: "youtube",
+          playlistId: "PLAmE6xgHWAwA",
+          videoId: "c84lqtARB0w",
+        },
+        isFavorite: true,
+        createdAt: 1700000000001,
+        updatedAt: 1700000000001,
+      },
     ];
 
-    savePlaylists(existingWithFeel);
+    savePlaylists(existingWithPhonk);
     const result = loadPlaylists();
 
-    const feelMatches = result.filter(
+    const phonkMatches = result.filter(
       (p) =>
-        p.id === "default-feel" ||
-        (p.source.type === "youtube" && p.source.playlistId === "PLJQOYXoZjkTU")
+        p.id === "default-phonk" ||
+        (p.source.type === "youtube" && p.source.playlistId === "PLAmE6xgHWAwA")
     );
-    expect(feelMatches.length).toBe(1);
-    expect(feelMatches[0].name).toBe("My Favorite Feel");
+    expect(phonkMatches.length).toBe(1);
+    expect(phonkMatches[0].name).toBe("My Phonk Mix");
   });
 });

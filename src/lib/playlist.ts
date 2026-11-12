@@ -127,6 +127,18 @@ export const DEFAULT_PLAYLISTS: Playlist[] = [
     updatedAt: 1700000000000,
   },
   {
+    id: "default-phonk",
+    name: "phonk",
+    source: {
+      type: "youtube",
+      playlistId: "PLAmE6xgHWAwA",
+      videoId: "c84lqtARB0w",
+    },
+    isFavorite: true,
+    createdAt: 1700000000001,
+    updatedAt: 1700000000001,
+  },
+  {
     id: "skins-slowed-radio",
     name: "Skins (Slowed + Reverb) — Radio",
     source: {
@@ -135,8 +147,8 @@ export const DEFAULT_PLAYLISTS: Playlist[] = [
       videoId: "ET6Hn_iADIs",
     },
     isFavorite: true,
-    createdAt: 1700000000001,
-    updatedAt: 1700000000001,
+    createdAt: 1700000000002,
+    updatedAt: 1700000000002,
   },
   {
     id: "default-late-night",
@@ -146,8 +158,8 @@ export const DEFAULT_PLAYLISTS: Playlist[] = [
       playlistId: "PLjEaoINr3zgEq71FullHMiY0-b4STCaot",
     },
     isFavorite: true,
-    createdAt: 1700000000002,
-    updatedAt: 1700000000002,
+    createdAt: 1700000000003,
+    updatedAt: 1700000000003,
   },
   {
     id: "default-deep-focus",
@@ -157,8 +169,8 @@ export const DEFAULT_PLAYLISTS: Playlist[] = [
       playlistId: "PLjEaoINr3zgHqbmAY-f5OoMYYeARthC_G",
     },
     isFavorite: false,
-    createdAt: 1700000000003,
-    updatedAt: 1700000000003,
+    createdAt: 1700000000004,
+    updatedAt: 1700000000004,
   },
   {
     id: "default-research",
@@ -168,8 +180,8 @@ export const DEFAULT_PLAYLISTS: Playlist[] = [
       playlistId: "PLjEaoINr3zgGBmmLWvR4PE5cY8T2pQdPn",
     },
     isFavorite: false,
-    createdAt: 1700000000004,
-    updatedAt: 1700000000004,
+    createdAt: 1700000000005,
+    updatedAt: 1700000000005,
   },
   {
     id: "default-lofi",
@@ -179,8 +191,8 @@ export const DEFAULT_PLAYLISTS: Playlist[] = [
       playlistId: "PLofht4PTcKYnaH8w5olJCI-wUVxuoMHqM",
     },
     isFavorite: false,
-    createdAt: 1700000000005,
-    updatedAt: 1700000000005,
+    createdAt: 1700000000006,
+    updatedAt: 1700000000006,
   },
   {
     id: "default-ambient",
@@ -190,15 +202,16 @@ export const DEFAULT_PLAYLISTS: Playlist[] = [
       playlistId: "PLMXbAPr21di4ZjeijkAFbPPfOY7BkSJTY",
     },
     isFavorite: false,
-    createdAt: 1700000000006,
-    updatedAt: 1700000000006,
+    createdAt: 1700000000007,
+    updatedAt: 1700000000007,
   },
 ];
 
 /**
  * Load playlists from localStorage with safe migration for returning users.
- * Automatically adds any missing default preset (such as "feel") without
+ * Automatically adds any missing default preset (such as "feel" and "phonk") without
  * overwriting existing user playlists, order, or preferences.
+ * When adding "phonk", it is inserted directly after "feel" if "feel" is present.
  */
 export function loadPlaylists(): Playlist[] {
   if (typeof window === "undefined") return DEFAULT_PLAYLISTS;
@@ -221,7 +234,18 @@ export function loadPlaylists(): Playlist[] {
             p.source.playlistId === def.source.playlistId)
       );
       if (!exists) {
-        result.push(def);
+        if (def.id === "default-phonk") {
+          const feelIndex = result.findIndex(
+            (p) => p.id === "default-feel" || p.name.toLowerCase() === "feel"
+          );
+          if (feelIndex !== -1) {
+            result.splice(feelIndex + 1, 0, def);
+          } else {
+            result.push(def);
+          }
+        } else {
+          result.push(def);
+        }
         migrated = true;
       }
     }

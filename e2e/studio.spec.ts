@@ -43,9 +43,11 @@ test.describe("After Hours Studio E2E", () => {
     // Open playlists flyout
     await playlistsBtn.click();
 
-    // Verify 'feel' playlist is present in quick switch
+    // Verify 'feel' and 'phonk' playlists are present in quick switch
     const feelItem = page.locator("button:has-text('feel')");
     await expect(feelItem.first()).toBeVisible();
+    const phonkItem = page.locator("button:has-text('phonk')");
+    await expect(phonkItem.first()).toBeVisible();
 
     // Click Manage Playlists
     const manageBtn = page.getByRole("button", { name: /manage playlists/i });
