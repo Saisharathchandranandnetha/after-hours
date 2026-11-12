@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useMemo } from "react";
-import { Maximize2, Minimize2, Tv } from "lucide-react";
+import { Maximize2, Minimize2, Tv, EyeOff } from "lucide-react";
 import { usePlaylistStore } from "@/lib/playlist-store";
 import { useYouTubePlayer } from "@/hooks/use-youtube-player";
 import { useLocalAudioPlayer } from "@/hooks/use-local-audio-player";
@@ -13,6 +13,8 @@ type PlayerContextValue = {
   player: UnifiedPlayer;
   isEmbedExpanded: boolean;
   setEmbedExpanded: (expanded: boolean | ((prev: boolean) => boolean)) => void;
+  isEmbedHidden: boolean;
+  setEmbedHidden: (hidden: boolean | ((prev: boolean) => boolean)) => void;
   activePlaylistName: string;
   activePlaylist: Playlist | undefined;
 };
@@ -31,6 +33,7 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const { playlists, activePlaylistId, hydrate } = usePlaylistStore();
   const [host, setHost] = useState<HTMLDivElement | null>(null);
   const [isEmbedExpanded, setEmbedExpanded] = useState(false);
+  const [isEmbedHidden, setEmbedHidden] = useState(false);
 
   useEffect(() => {
     hydrate();
@@ -97,6 +100,8 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         player: wrappedPlayer,
         isEmbedExpanded,
         setEmbedExpanded,
+        isEmbedHidden,
+        setEmbedHidden,
         activePlaylistName: activePlaylist?.name || "Late Night Coding",
         activePlaylist,
       }}
@@ -109,13 +114,16 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
         - Compact mode: 240px x 140px docked cleanly at bottom-right with glass border.
         - Expanded mode: 480px x 270px desktop (or 90vw max 520px mobile).
         - YouTube controls and branding are preserved and accessible.
+        - Hide / Show mode toggles visibility cleanly without stopping playback.
       */}
       {!isLocal && (
         <div
           className={`fixed transition-all duration-300 select-none ${
-            isEmbedExpanded
-              ? "z-50 pointer-events-auto bottom-5 right-5 w-[90vw] max-w-[500px] h-[280px] sm:w-[480px] sm:h-[270px] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] border border-amber-400/30 bg-black/95 backdrop-blur-xl"
-              : "z-20 pointer-events-none bottom-3 right-3 sm:bottom-4 sm:right-4 w-[200px] h-[120px] sm:w-[240px] sm:h-[150px] rounded-xl shadow-xl border border-white/15 bg-black/90 backdrop-blur-md opacity-85 hover:opacity-100"
+            isEmbedHidden
+              ? "opacity-0 pointer-events-none translate-y-8 scale-95 bottom-3 right-3 sm:bottom-4 sm:right-4 w-[200px] h-[120px]"
+              : isEmbedExpanded
+                ? "z-50 pointer-events-auto bottom-5 right-5 w-[90vw] max-w-[500px] h-[280px] sm:w-[480px] sm:h-[270px] rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.9)] border border-amber-400/30 bg-black/95 backdrop-blur-xl"
+                : "z-20 pointer-events-none bottom-3 right-3 sm:bottom-4 sm:right-4 w-[200px] h-[120px] sm:w-[240px] sm:h-[150px] rounded-xl shadow-xl border border-white/15 bg-black/90 backdrop-blur-md opacity-85 hover:opacity-100"
           } overflow-hidden group`}
           aria-label="YouTube Video Player"
         >
@@ -145,6 +153,18 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
                 ) : (
                   <Maximize2 className="size-3" />
                 )}
+              </button>
+
+              {/* Hide Button */}
+              <button
+                type="button"
+                onClick={() => setEmbedHidden(true)}
+                className="flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-mono text-white/70 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+                title="Hide live stream window"
+                aria-label="Hide live stream window"
+              >
+                <EyeOff className="size-3 text-amber-400" />
+                <span>Hide</span>
               </button>
             </div>
           </div>

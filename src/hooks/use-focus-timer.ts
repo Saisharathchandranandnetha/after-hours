@@ -31,25 +31,6 @@ export function useFocusTimer() {
     }
   }, [settings.notificationEnabled]);
 
-  // Update document.title if enabled
-  useEffect(() => {
-    if (!settings.showInTitle || typeof document === "undefined") return;
-
-    if (timer.isRunning) {
-      const mins = Math.floor(timer.seconds / 60);
-      const secs = String(timer.seconds % 60).padStart(2, "0");
-      const prefix =
-        timer.mode === "pomodoro" ? "🍅" : timer.mode === "stopwatch" ? "⏱" : "☕";
-      document.title = `${prefix} ${mins}:${secs} — After Hours`;
-    } else {
-      document.title = "After Hours — Personal Coding & Research Music Studio";
-    }
-
-    return () => {
-      document.title = "After Hours — Personal Coding & Research Music Studio";
-    };
-  }, [timer.isRunning, timer.seconds, timer.mode, settings.showInTitle]);
-
   // Compute progress (0 to 1)
   const progress =
     timer.mode === "stopwatch"

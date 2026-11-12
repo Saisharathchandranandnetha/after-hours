@@ -7,7 +7,7 @@ test.describe("After Hours Studio E2E", () => {
     await page.goto("/");
 
     // Check title
-    await expect(page).toHaveTitle(/After Hours/i);
+    await expect(page).toHaveTitle(/After[- ]Hours/i);
 
     // Check editorial heading
     const heading = page.locator("h1");
@@ -107,6 +107,39 @@ test.describe("After Hours Studio E2E", () => {
     await expect(contractBtn).not.toBeVisible();
   });
 
+  test("hides live stream video with Hide button and toggles it from Studio dropdown south button", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    // Click TV button to show & expand video
+    const tvBtn = page.getByRole("button", { name: /toggle live video stream window/i });
+    await tvBtn.click();
+
+    // Hide button should be visible in video player header
+    const hideBtn = page.getByRole("button", { name: /hide live stream window/i });
+    await expect(hideBtn).toBeVisible();
+
+    // Click Hide
+    await hideBtn.click();
+
+    // Video container should have opacity-0 / hidden
+    const videoContainer = page.locator('div[aria-label="YouTube Video Player"]');
+    await expect(videoContainer).toHaveClass(/opacity-0/);
+
+    // Open Studio dropdown menu and check south button
+    const studioBtn = page.getByRole("button", { name: /studio menu/i });
+    await studioBtn.click();
+
+    // South button should now say "Show Live Stream"
+    const toggleLiveBtn = page.getByRole("button", { name: /show live stream video/i });
+    await expect(toggleLiveBtn).toBeVisible();
+
+    // Click to show live stream again
+    await toggleLiveBtn.click();
+    await expect(videoContainer).not.toHaveClass(/opacity-0/);
+  });
+
   test("opens More options in cassette deck with volume, shuffle, repeat, and video toggle", async ({
     page,
   }) => {
@@ -160,9 +193,10 @@ test.describe("After Hours Studio E2E", () => {
   test("opens focus timer and verifies timer persistence", async ({ page }) => {
     await page.goto("/");
 
-    // Click center focus room button
-    const focusRoomBtn = page.getByTitle(/focus studio status/i);
-    await focusRoomBtn.click();
+    // Open via Studio dropdown -> Focus Room
+    const studioBtn = page.getByRole("button", { name: /studio menu/i });
+    await studioBtn.click();
+    await page.getByRole("button", { name: /focus room/i }).click();
 
     const dialog = page.getByRole("dialog", { name: /focus timer/i });
     await expect(dialog).toBeVisible();
@@ -184,7 +218,8 @@ test.describe("After Hours Studio E2E", () => {
     await expect(dialog).not.toBeVisible();
 
     // Reopen modal: verify timer is STILL running and pause button is still active!
-    await focusRoomBtn.click();
+    await studioBtn.click();
+    await page.getByRole("button", { name: /focus room/i }).click();
     const reopenedDialog = page.getByRole("dialog", { name: /focus timer/i });
     await expect(reopenedDialog).toBeVisible();
     await expect(page.getByRole("button", { name: /pause timer/i })).toBeVisible();
@@ -195,6 +230,21 @@ test.describe("After Hours Studio E2E", () => {
 
     // Close
     await page.getByRole("button", { name: /close focus timer/i }).click();
+  });
+
+  test("displays live listener presence count in center with no blinking and rotates tab title", async ({
+    page,
+  }) => {
+    await page.goto("/");
+
+    // Center presence badge should display listening count without blinking
+    const presenceBadge = page.getByTitle(/live studio sessions/i);
+    await expect(presenceBadge).toBeVisible();
+    await expect(presenceBadge).toContainText("1");
+    await expect(presenceBadge).toContainText(/listening/i);
+
+    // Tab title should contain Netha's after-hours
+    await expect(page).toHaveTitle(/Netha's after-hours/i);
   });
 
   test("opens clock customization modal and changes format", async ({ page }) => {

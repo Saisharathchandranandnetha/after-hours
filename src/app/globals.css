@@ -106,21 +106,27 @@ body {
 
   .animate-reel {
     animation: reel-spin 2.6s linear infinite;
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
   }
 
   /* Marquee scrolling for long track titles */
   @keyframes marquee {
     0% {
-      transform: translateX(0);
+      transform: translate3d(0, 0, 0);
     }
     100% {
-      transform: translateX(-50%);
+      transform: translate3d(-50%, 0, 0);
     }
   }
 
   .animate-marquee {
     display: inline-flex;
     animation: marquee 16s linear infinite;
+    will-change: transform;
+    transform: translateZ(0);
+    backface-visibility: hidden;
   }
 
   /* Smooth pulse for live indicator or timer */

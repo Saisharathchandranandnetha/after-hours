@@ -1,0 +1,152 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // This security rules file assumes the following data structures:
+    //
+    // Collection: presence
+    // Document ID: {tabId} (e.g. "tab_uuid" or alphanumeric identifier, 1-128 chars)
+    // Fields:
+    //   - lastSeen: timestamp (required) - Timestamp of client heartbeat / active presence
+    //   - tabId: string (optional, 1-128 chars) - Client tab identifier, must match document ID if provided
+    //   - createdAt: timestamp (optional) - Initial creation timestamp of the presence record
+    //   - updatedAt: timestamp (optional) - Last update timestamp of the presence record
+    //   - status: string (optional, allowed: ['online', 'offline', 'active', 'idle']) - Client status indicator
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    // Check if the user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Check if user owns the resource (for user-owned documents)
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Check if user is owner based on document's uid field
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
+    // Verify UID hasn't been tampered with on create
+    function uidUnchanged() {
+      return !('uid' in request.resource.data) ||
+        request.resource.data.uid == request.auth.uid;
+    }
+
+    // Ensure uid field is not modified on update
+    function uidNotModified() {
+      return !('uid' in request.resource.data) ||
+        request.resource.data.uid == resource.data.uid;
+    }
+
+    // Validate required fields exist in request payload
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    // Validate that document contains only the allowed fields
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // Validate string length within bounds
+    function validStringLength(field, minLen, maxLen) {
+      return request.resource.data[field] is string &&
+        request.resource.data[field].size() >= minLen &&
+        request.resource.data[field].size() <= maxLen;
+    }
+
+    // Validate optional string length if field exists
+    function isValidOptionalString(field, minLen, maxLen) {
+      return !(field in request.resource.data) ||
+        (request.resource.data[field] is string &&
+         request.resource.data[field].size() >= minLen &&
+         request.resource.data[field].size() <= maxLen);
+    }
+
+    // Validate that a timestamp is recent (within past 10 minutes or up to 5 minutes into future for drift)
+    function isRecent(time) {
+      return time is timestamp &&
+             time > request.time - duration.value(10, 'm') &&
+             time <= request.time + duration.value(5, 'm');
+    }
+
+    // Validate document tabId parameter format and length
+    function isValidTabId(tabId) {
+      return tabId is string &&
+             tabId.size() >= 1 &&
+             tabId.size() <= 128;
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    // Validate presence document schema and field constraints
+    function isValidPresence(tabId) {
+      return hasOnlyAllowedFields(['lastSeen', 'tabId', 'createdAt', 'updatedAt', 'status']) &&
+             hasRequiredFields(['lastSeen']) &&
+             request.resource.data.lastSeen is timestamp &&
+             isRecent(request.resource.data.lastSeen) &&
+             (!('tabId' in request.resource.data) ||
+               (request.resource.data.tabId is string &&
+                request.resource.data.tabId == tabId &&
+                request.resource.data.tabId.size() <= 128)) &&
+             (!('createdAt' in request.resource.data) ||
+               (request.resource.data.createdAt is timestamp &&
+                isRecent(request.resource.data.createdAt))) &&
+             (!('updatedAt' in request.resource.data) ||
+               (request.resource.data.updatedAt is timestamp &&
+                isRecent(request.resource.data.updatedAt))) &&
+             (!('status' in request.resource.data) ||
+               (request.resource.data.status is string &&
+                request.resource.data.status in ['online', 'offline', 'active', 'idle']));
+    }
+
+    // Verify immutable fields are not modified or removed during updates
+    function isPresenceUpdateAllowed() {
+      return (!('createdAt' in resource.data) ||
+               ('createdAt' in request.resource.data &&
+                request.resource.data.createdAt == resource.data.createdAt)) &&
+             (!('tabId' in resource.data) ||
+               ('tabId' in request.resource.data &&
+                request.resource.data.tabId == resource.data.tabId));
+    }
+
+    // ===============================================================
+    // Match Rules
+    // ===============================================================
+
+    // Default deny: All collections and paths are closed by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Live studio anonymous tab presence collection
+    match /presence/{tabId} {
+      // Public read allows real-time listener count and session synchronization
+      allow read: if true;
+
+      // Public create allows new listener tabs to register their presence heartbeat
+      allow create: if isValidTabId(tabId) && isValidPresence(tabId);
+
+      // Public update allows existing listener tabs to refresh their lastSeen timestamp
+      allow update: if isValidTabId(tabId) && isValidPresence(tabId) && isPresenceUpdateAllowed();
+
+      // Public delete allows tabs to clean up on close/departure
+      allow delete: if isValidTabId(tabId);
+    }
+  }
+}

@@ -29,7 +29,14 @@ type CassetteDeckProps = {
 };
 
 export function CassetteDeck({ onOpenTimer, onToggleFocusMode }: CassetteDeckProps) {
-  const { player, isEmbedExpanded, setEmbedExpanded, activePlaylistName } = usePlayerContext();
+  const {
+    player,
+    isEmbedExpanded,
+    setEmbedExpanded,
+    isEmbedHidden,
+    setEmbedHidden,
+    activePlaylistName,
+  } = usePlayerContext();
 
   const {
     state,
@@ -176,9 +183,12 @@ export function CassetteDeck({ onOpenTimer, onToggleFocusMode }: CassetteDeckPro
             {live ? (
               <button
                 type="button"
-                onClick={() => setEmbedExpanded(true)}
+                onClick={() => {
+                  setEmbedHidden(false);
+                  setEmbedExpanded(true);
+                }}
                 title="Expand live stream"
-                className="inline-flex items-center gap-1 text-amber-400 hover:text-amber-300 font-semibold"
+                className="inline-flex items-center gap-1 text-amber-400 hover:text-amber-300 font-semibold cursor-pointer"
               >
                 <Tv className="size-3" />
                 <span>live</span>
@@ -234,13 +244,26 @@ export function CassetteDeck({ onOpenTimer, onToggleFocusMode }: CassetteDeckPro
               <span className="hidden sm:inline font-mono text-[11px]">Queue</span>
             </button>
 
-            {/* TV Button to expand live stream video */}
+            {/* TV Button to expand/unhide live stream video */}
             <button
-              onClick={() => setEmbedExpanded((prev) => !prev)}
+              onClick={() => {
+                if (isEmbedHidden) {
+                  setEmbedHidden(false);
+                  setEmbedExpanded(true);
+                } else {
+                  setEmbedExpanded((prev) => !prev);
+                }
+              }}
               aria-label="Toggle live video stream window"
-              title={isEmbedExpanded ? "Collapse video" : "Expand live stream video [TV]"}
+              title={
+                isEmbedHidden
+                  ? "Show live stream video"
+                  : isEmbedExpanded
+                    ? "Collapse video"
+                    : "Expand live stream video [TV]"
+              }
               className={`flex items-center gap-1 rounded-full border px-2.5 py-1.5 text-xs transition-all backdrop-blur-md ${
-                isEmbedExpanded
+                !isEmbedHidden && isEmbedExpanded
                   ? "border-amber-400/50 bg-amber-400/20 text-amber-300 shadow-[0_0_12px_rgba(251,191,36,0.3)]"
                   : "border-white/10 bg-white/5 text-white/70 hover:bg-white/15 hover:text-white"
               }`}
@@ -376,9 +399,18 @@ export function CassetteDeck({ onOpenTimer, onToggleFocusMode }: CassetteDeckPro
 
                 <div className="my-2 border-t border-white/10" />
 
-                {/* Video Player Toggle */}
+                {/* Video Player Toggle (Hide/Show/Expand) */}
                 <button
-                  onClick={() => setEmbedExpanded((prev) => !prev)}
+                  onClick={() => {
+                    if (isEmbedHidden) {
+                      setEmbedHidden(false);
+                      setEmbedExpanded(true);
+                    } else if (isEmbedExpanded) {
+                      setEmbedHidden(true);
+                    } else {
+                      setEmbedExpanded(true);
+                    }
+                  }}
                   className="flex w-full items-center justify-between rounded-xl px-2.5 py-2 text-xs text-white/70 hover:bg-white/10 hover:text-white transition-colors"
                 >
                   <div className="flex items-center gap-2">
@@ -386,7 +418,7 @@ export function CassetteDeck({ onOpenTimer, onToggleFocusMode }: CassetteDeckPro
                     <span>Video Player Window</span>
                   </div>
                   <span className="font-mono text-[10px] text-amber-300">
-                    {isEmbedExpanded ? "Expanded" : "Compact"}
+                    {isEmbedHidden ? "Hidden" : isEmbedExpanded ? "Expanded" : "Compact"}
                   </span>
                 </button>
 

@@ -6,6 +6,7 @@ import { PlayerProvider } from "@/components/player-provider";
 import { CassetteDeck } from "@/components/cassette-deck";
 import { NavigationBar } from "@/components/navigation-bar";
 import { LocalClock } from "@/components/local-clock";
+import { ScrollingTabTitle } from "@/components/scrolling-tab-title";
 import { useSettings } from "@/lib/settings";
 import { X, Sparkles } from "lucide-react";
 
@@ -67,6 +68,8 @@ export default function Home() {
 
   return (
     <main className="relative h-screen w-screen overflow-hidden bg-zinc-950 font-sans">
+      <ScrollingTabTitle />
+
       {/* Cinematic Background Scenery */}
       <CoverScene />
 

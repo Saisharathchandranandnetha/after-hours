@@ -6,7 +6,7 @@ import { PlaylistModal } from "./playlist-modal";
 import { FocusTimerModal } from "./focus-timer-modal";
 import { CustomizeModal } from "./customize-modal";
 import { StudioMenu } from "./studio-menu";
-import { useTimerStore } from "@/lib/timer-store";
+import { StudioPresence } from "./studio-presence";
 
 type NavigationBarProps = {
   isFullScreen: boolean;
@@ -25,7 +25,6 @@ export function NavigationBar({
   const [playlistTab, setPlaylistTab] = useState<"list" | "add">("list");
   const [timerOpen, setTimerOpen] = useState(false);
   const [customizeOpen, setCustomizeOpen] = useState(false);
-  const timer = useTimerStore();
 
   const handleOpenPlaylists = (tab: "list" | "add" = "list") => {
     setPlaylistTab(tab);
@@ -40,32 +39,9 @@ export function NavigationBar({
           <LocalClock />
         </div>
 
-        {/* Top Center: Discreet Focus Status */}
+        {/* Top Center: Live Studio Listener Presence */}
         <div className="justify-self-center">
-          <button
-            onClick={() => setTimerOpen(true)}
-            className="flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3.5 py-1 text-[11px] font-mono text-white/70 backdrop-blur-md transition-all hover:border-amber-400/40 hover:text-white"
-            title="Focus Studio Status"
-          >
-            <span
-              className={`size-1.5 rounded-full ${
-                isFocusMode
-                  ? "bg-amber-400 animate-soft-pulse shadow-[0_0_8px_rgba(251,191,36,0.9)]"
-                  : timer.isRunning
-                    ? "bg-amber-400 animate-ping"
-                    : "bg-amber-400/80"
-              }`}
-            />
-            <span>
-              {isFocusMode
-                ? "focus mode active"
-                : timer.isRunning
-                  ? `focus: ${Math.floor(timer.seconds / 60)}:${String(timer.seconds % 60).padStart(2, "0")}`
-                  : timer.completedSessions > 0
-                    ? `${timer.completedSessions} focus session${timer.completedSessions > 1 ? "s" : ""}`
-                    : "focus room"}
-            </span>
-          </button>
+          <StudioPresence />
         </div>
 
         {/* Top Right: Studio ▾ Primary Dropdown */}

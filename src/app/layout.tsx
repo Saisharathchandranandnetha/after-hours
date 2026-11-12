@@ -24,14 +24,14 @@ export const metadata: Metadata = {
       ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
       : "http://localhost:3000"
   ),
-  title: "After Hours — Personal Coding & Research Music Studio",
+  title: "Netha's After-Hours — Personal Coding & Research Music Studio",
   description:
     "A cozy, cinematic late-night music studio and focus room. Vintage cassette player, customizable clock, Pomodoro focus timers, and multiple curated playlists.",
   icons: {
     icon: "/favicon.ico",
   },
   openGraph: {
-    title: "After Hours — Personal Coding & Research Music Studio",
+    title: "Netha's After-Hours — Personal Coding & Research Music Studio",
     description: "Vintage cassette player, customizable clock, Pomodoro focus timers, and multiple curated playlists.",
     images: ["/cover.png"],
   },
